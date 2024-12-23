@@ -1,5 +1,5 @@
 // MyVaultDeployment.sol
-pragma solidity ^0.8.0;
+pragma solidity 0.6.12;
 
 import "lib/gmx-contracts/contracts/core/Vault.sol";
 import "lib/gmx-contracts/contracts/core/PositionManager.sol";
