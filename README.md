@@ -15,7 +15,9 @@ Install packages:
 
 ## deploy
 `npx hardhat run scripts/core/deployVault.js --network anvil`
+
 `npx hardhat run scripts/core/deployOrderBook.js --network anvil`
+
 `npx hardhat run scripts/core/deployPositionManager.js --network anvil`
 
         
