@@ -1,5 +1,21 @@
-    限价挂单、市价单：Vault.sol、PositionManager.sol、OrderBook.sol、Router.sol
-    
-    流动性质押\赎回（删）：RewardTracker.sol、RewardRouter.sol、RewardTracker.sol
-    固定价格预言机（简化）：PriceFeed.sol、VaultPriceFeed.sol、FastPriceFeed.sol
-    
+# GMX Contracts
+
+## Install Dependencies
+If npx is not installed yet:
+`npm install -g npx`
+
+Install packages:
+`npm i`
+
+## Compile Contracts
+`npx hardhat compile`
+
+## Run Tests
+`npx hardhat test`
+
+## deploy
+`npx hardhat run scripts/core/deployVault.js --network anvil`
+`npx hardhat run scripts/core/deployOrderBook.js --network anvil`
+`npx hardhat run scripts/core/deployPositionManager.js --network anvil`
+
+        
