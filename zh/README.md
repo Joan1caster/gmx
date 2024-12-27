@@ -68,15 +68,29 @@
    npx hardhat compile
    ```
 
-4. **运行测试：**
-   ```bash
-   npx hardhat test
-   ```
-
-5. **部署合约：**
+4. **合约脚本：**
+### 部署主要合约，地址自动记录在contract/CA.yaml，默认gov为anvil的第一个地址
    ```bash
    npx hardhat run scripts/core/deployVault.js --network anvil
    npx hardhat run scripts/core/deployOrderBook.js --network anvil
    npx hardhat run scripts/core/deployPositionManager.js --network anvil
+   npx hardhat run scripts/tokens/deployTokens.js --network anvil   
    ```
+6. **功能性测试脚本：**
+- **注意部署到anvil的合约在anvil重启后会自动清理需要重新部署
+   ```bash
+   # 铸造BTC和USDT给anvil的第二、第三个地址
+   npx hardhat run scripts/test/mint.js --network anvil
+   # 质押流动性
+   npx hardhat run scripts/test/pledge.js --network anvil
+      ```
+**已完成的工作：**
+   部署gmx核心合约，部署USDT和BTC并铸造给测试账户，授权给vault
 
+**接下来的工作：**
+   创建流动性池：    GlpManager：addLiquidity
+   设定币价：     Vault：setPriceFeed
+   配置交易参数：    Vault：setFees、setTokenConfig
+   创建开仓请求：      PositionRouter：createIncreasePosition
+   创建平仓请求：      PositionRouter：createDecreasePosition
+   确认交易：     PositionRouter：executeIncreasePosition、executeDecreasePosition
