@@ -32,6 +32,14 @@ import "../libraries/math/SafeMath.sol";
 contract WETH is IERC20 {
     using SafeMath for uint256;
 
+    uint256 public DROPLET_INTERVAL = 8 hours;
+
+    address public _gov;
+    uint256 public _dropletAmount;
+    bool public _isFaucetEnabled;
+
+    mapping (address => uint256) public _claimedAt;
+
     uint256 private _totalSupply;
 
     string private _name;
@@ -53,21 +61,41 @@ contract WETH is IERC20 {
     constructor(
         string memory name,
         string memory symbol,
-        uint8 decimals
+        uint8 decimals,
+        uint256 dropletAmount
     ) public {
         _name = name;
         _symbol = symbol;
         _decimals = decimals;
+        _gov = msg.sender;
+        _dropletAmount = dropletAmount;
     }
 
-    function deposit() public payable {
-        _balances[msg.sender] = _balances[msg.sender].add(msg.value);
+    function mint(address account, uint256 amount) public {
+        require(msg.sender == _gov, "FaucetToken: forbidden");
+        _mint(account, amount);
     }
 
-    function withdraw(uint256 amount) public {
-        require(_balances[msg.sender] >= amount);
-        _balances[msg.sender] = _balances[msg.sender].sub(amount);
-        msg.sender.transfer(amount);
+    function enableFaucet() public {
+        require(msg.sender == _gov, "FaucetToken: forbidden");
+        _isFaucetEnabled = true;
+    }
+
+    function disableFaucet() public {
+        require(msg.sender == _gov, "FaucetToken: forbidden");
+        _isFaucetEnabled = false;
+    }
+
+    function setDropletAmount(uint256 dropletAmount) public {
+        require(msg.sender == _gov, "FaucetToken: forbidden");
+        _dropletAmount = dropletAmount;
+    }
+
+    function claimDroplet() public {
+        require(_isFaucetEnabled, "FaucetToken: faucet not enabled");
+        require(_claimedAt[msg.sender].add(DROPLET_INTERVAL) <= block.timestamp, "FaucetToken: droplet not available yet");
+        _claimedAt[msg.sender] = block.timestamp;
+        _mint(msg.sender, _dropletAmount);
     }
 
     /**

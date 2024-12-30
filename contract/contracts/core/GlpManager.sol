@@ -211,11 +211,11 @@ contract GlpManager is ReentrancyGuard, Governable, IGlpManager {
 
         // calculate aum before buyUSDG
         uint256 aumInUsdg = getAumInUsdg(true);
-        uint256 glpSupply = IERC20(glp).totalSupply();
+        uint256 glpSupply = IERC20(glp).totalSupply();// 获取glp总供应量
 
-        IERC20(_token).safeTransferFrom(_fundingAccount, address(vault), _amount);
-        uint256 usdgAmount = vault.buyUSDG(_token, address(this));
-        require(usdgAmount >= _minUsdg, "GlpManager: insufficient USDG output");
+        IERC20(_token).safeTransferFrom(_fundingAccount, address(vault), _amount); // 把Token从用户账户转移给vault
+        uint256 usdgAmount = vault.buyUSDG(_token, address(this)); // 铸造等价的usdg给当前合约（扣除手续费），价格来源为
+        require(usdgAmount >= _minUsdg, "GlpManager: insufficient USDG output");// 需要大于用户要的最小USDT
 
         uint256 mintAmount = aumInUsdg == 0 ? usdgAmount : usdgAmount.mul(glpSupply).div(aumInUsdg);
         require(mintAmount >= _minGlp, "GlpManager: insufficient GLP output");

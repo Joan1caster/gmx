@@ -75,6 +75,7 @@
    npx hardhat run scripts/core/deployOrderBook.js --network anvil
    npx hardhat run scripts/core/deployPositionManager.js --network anvil
    npx hardhat run scripts/tokens/deployTokens.js --network anvil   
+   npx hardhat run scripts/access/deployTokenManager.js --network anvil
    ```
 6. **功能性测试脚本：**
 - **注意部署到anvil的合约在anvil重启后会自动清理需要重新部署
