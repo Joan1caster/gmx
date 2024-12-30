@@ -76,12 +76,15 @@
    npx hardhat run scripts/core/deployPositionManager.js --network anvil
    npx hardhat run scripts/tokens/deployTokens.js --network anvil   
    npx hardhat run scripts/access/deployTokenManager.js --network anvil
+   
    ```
 6. **功能性测试脚本：**
-- **注意部署到anvil的合约在anvil重启后会自动清理需要重新部署
+### 注意部署到anvil的合约在anvil重启后会自动清理需要重新部署
    ```bash
    # 铸造BTC和USDT给anvil的第二、第三个地址
    npx hardhat run scripts/test/mint.js --network anvil
+   # 添加白名单
+   npx hardhat run scripts/core/whitelistTokens.js --network anvil
    # 质押流动性
    npx hardhat run scripts/test/pledge.js --network anvil
       ```
