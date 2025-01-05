@@ -17,7 +17,7 @@ async function main() {
   // const router = await contractAt("Router", "0xaBBc5F99639c9B6bCb58544ddf04EFA6802F4064")
   // const vaultPriceFeed = await contractAt("VaultPriceFeed", "0x30333ce00ac3025276927672aaefd80f22e89e54")
   // const secondaryPriceFeed = await deployContract("FastPriceFeed", [5 * 60])
-  const shortsTracker = await deployContract("ShortsTracker", [vault.address])
+
   const vaultPriceFeed = await deployContract("VaultPriceFeed", [])
 
   await sendTxn(vaultPriceFeed.setMaxStrictPriceDeviation(expandDecimals(1, 28)), "vaultPriceFeed.setMaxStrictPriceDeviation") // 0.05 USD
@@ -27,7 +27,7 @@ async function main() {
   const glp = await deployContract("GLP", [])
   await sendTxn(glp.setInPrivateTransferMode(true), "glp.setInPrivateTransferMode")
   // const glp = await contractAt("GLP", "0x4277f8F2c384827B5273592FF7CeBd9f2C1ac258")
-  const glpManager = await deployContract("GlpManager", [vault.address, usdg.address, glp.address, shortsTracker.address, 15 * 60])
+  const glpManager = await deployContract("GlpManager", [vault.address, usdg.address, glp.address, 15 * 60])
   await sendTxn(glpManager.setInPrivateMode(true), "glpManager.setInPrivateMode")
 
   await sendTxn(glp.setMinter(glpManager.address, true), "glp.setMinter")

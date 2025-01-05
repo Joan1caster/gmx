@@ -32,22 +32,15 @@ import "../libraries/math/SafeMath.sol";
 contract BTC is IERC20 {
     using SafeMath for uint256;
 
-    uint256 public DROPLET_INTERVAL = 8 hours;
+    mapping (address => uint256) private _balances;
 
-    address public _gov;
-    uint256 public _dropletAmount;
-    bool public _isFaucetEnabled;
-
-    mapping (address => uint256) public _claimedAt;
+    mapping (address => mapping (address => uint256)) private _allowances;
 
     uint256 private _totalSupply;
 
     string private _name;
     string private _symbol;
     uint8 private _decimals;
-
-    mapping (address => uint256) private _balances;
-    mapping (address => mapping (address => uint256)) private _allowances;
 
     /**
      * @dev Sets the values for {name} and {symbol}, initializes {decimals} with
@@ -58,44 +51,28 @@ contract BTC is IERC20 {
      * All three of these values are immutable: they can only be set once during
      * construction.
      */
-    constructor(
-        string memory name,
-        string memory symbol,
-        uint8 decimals,
-        uint256 dropletAmount
-    ) public {
+    constructor(string memory name, string memory symbol) public {
         _name = name;
         _symbol = symbol;
-        _decimals = decimals;
-        _gov = msg.sender;
-        _dropletAmount = dropletAmount;
+        _decimals = 18;
     }
 
     function mint(address account, uint256 amount) public {
-        require(msg.sender == _gov, "FaucetToken: forbidden");
         _mint(account, amount);
     }
 
-    function enableFaucet() public {
-        require(msg.sender == _gov, "FaucetToken: forbidden");
-        _isFaucetEnabled = true;
+    function withdrawToken(address token, address account, uint256 amount) public {
+        IERC20(token).transfer(account, amount);
     }
 
-    function disableFaucet() public {
-        require(msg.sender == _gov, "FaucetToken: forbidden");
-        _isFaucetEnabled = false;
+    function deposit() public payable {
+        _mint(msg.sender, msg.value);
     }
 
-    function setDropletAmount(uint256 dropletAmount) public {
-        require(msg.sender == _gov, "FaucetToken: forbidden");
-        _dropletAmount = dropletAmount;
-    }
-
-    function claimDroplet() public {
-        require(_isFaucetEnabled, "FaucetToken: faucet not enabled");
-        require(_claimedAt[msg.sender].add(DROPLET_INTERVAL) <= block.timestamp, "FaucetToken: droplet not available yet");
-        _claimedAt[msg.sender] = block.timestamp;
-        _mint(msg.sender, _dropletAmount);
+    function withdraw(uint256 amount) public {
+        require(_balances[msg.sender] >= amount, "Token: insufficient balance");
+        _burn(msg.sender, amount);
+        msg.sender.transfer(amount);
     }
 
     /**

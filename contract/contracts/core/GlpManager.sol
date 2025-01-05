@@ -39,6 +39,10 @@ contract GlpManager is ReentrancyGuard, Governable, IGlpManager {
     uint256 public shortsTrackerAveragePriceWeight;
     mapping (address => bool) public isHandler;
 
+    event Test(
+        uint256 arg
+    );
+
     event AddLiquidity(
         address account,
         address token,
@@ -97,12 +101,14 @@ contract GlpManager is ReentrancyGuard, Governable, IGlpManager {
 
     function addLiquidity(address _token, uint256 _amount, uint256 _minUsdg, uint256 _minGlp) external override nonReentrant returns (uint256) {
         if (inPrivateMode) { revert("GlpManager: action not enabled"); }
-        return _addLiquidity(msg.sender, msg.sender, _token, _amount, _minUsdg, _minGlp);
+        uint256 getLiquidityNum =  _addLiquidity(msg.sender, msg.sender, _token, _amount, _minUsdg, _minGlp);
+        return getLiquidityNum;
     }
 
     function addLiquidityForAccount(address _fundingAccount, address _account, address _token, uint256 _amount, uint256 _minUsdg, uint256 _minGlp) external override nonReentrant returns (uint256) {
         _validateHandler();
-        return _addLiquidity(_fundingAccount, _account, _token, _amount, _minUsdg, _minGlp);
+        uint256 glpNum = _addLiquidity(_fundingAccount, _account, _token, _amount, _minUsdg, _minGlp);
+        return glpNum;
     }
 
     function removeLiquidity(address _tokenOut, uint256 _glpAmount, uint256 _minOut, address _receiver) external override nonReentrant returns (uint256) {
@@ -151,9 +157,9 @@ contract GlpManager is ReentrancyGuard, Governable, IGlpManager {
             uint256 poolAmount = _vault.poolAmounts(token);
             uint256 decimals = _vault.tokenDecimals(token);
 
-            if (_vault.stableTokens(token)) {
+            if (_vault.stableTokens(token)) {// 稳定币不考虑空头，直接加池子总量(包括预存代币、被借走的代币)
                 aum = aum.add(poolAmount.mul(price).div(10 ** decimals));
-            } else {
+            } else {// 非稳定币计算空头盈利
                 // add global short profit / loss
                 uint256 size = _vault.globalShortSizes(token);
 
@@ -167,10 +173,11 @@ contract GlpManager is ReentrancyGuard, Governable, IGlpManager {
                     }
                 }
 
-                aum = aum.add(_vault.guaranteedUsd(token));
-
+                aum = aum.add(_vault.guaranteedUsd(token));// 添加保证金
+                // 添加未被借贷的资产，也就是剩余资产
                 uint256 reservedAmount = _vault.reservedAmounts(token);
                 aum = aum.add(poolAmount.sub(reservedAmount).mul(price).div(10 ** decimals));
+                // 最终公式为本金+保证金+未被借贷的钱-空头盈利(可为负)
             }
         }
 
@@ -209,14 +216,14 @@ contract GlpManager is ReentrancyGuard, Governable, IGlpManager {
     function _addLiquidity(address _fundingAccount, address _account, address _token, uint256 _amount, uint256 _minUsdg, uint256 _minGlp) private returns (uint256) {
         require(_amount > 0, "GlpManager: invalid _amount");
 
-        // calculate aum before buyUSDG
+        // 获取usdg、glp总供应量
         uint256 aumInUsdg = getAumInUsdg(true);
-        uint256 glpSupply = IERC20(glp).totalSupply();// 获取glp总供应量
-
-        IERC20(_token).safeTransferFrom(_fundingAccount, address(vault), _amount); // 把Token从用户账户转移给vault
-        uint256 usdgAmount = vault.buyUSDG(_token, address(this)); // 铸造等价的usdg给当前合约（扣除手续费），价格来源为
-        require(usdgAmount >= _minUsdg, "GlpManager: insufficient USDG output");// 需要大于用户要的最小USDT
-
+        uint256 glpSupply = IERC20(glp).totalSupply();
+        // 转移资产到vault，铸造USDG
+        IERC20(_token).safeTransferFrom(_fundingAccount, address(vault), _amount);
+        uint256 usdgAmount = vault.buyUSDG(_token, address(this));
+        require(usdgAmount >= _minUsdg, "GlpManager: insufficient USDG output");
+        // 换算成GLP
         uint256 mintAmount = aumInUsdg == 0 ? usdgAmount : usdgAmount.mul(glpSupply).div(aumInUsdg);
         require(mintAmount >= _minGlp, "GlpManager: insufficient GLP output");
 

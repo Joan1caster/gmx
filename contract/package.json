@@ -33,6 +33,7 @@
     "@synapseprotocol/sdk": "^0.94.1",
     "@uniswap/sdk-core": "^3.0.1",
     "@uniswap/v3-sdk": "^3.8.2",
+    "bignumber.js": "^9.1.2",
     "bn.js": "^5.2.0",
     "body-parser": "^1.20.2",
     "cors": "^2.8.5",

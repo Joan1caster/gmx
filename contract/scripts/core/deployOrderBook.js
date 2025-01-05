@@ -1,24 +1,21 @@
 const { deployContract, contractAt , sendTxn, writeTmpAddresses } = require("../shared/helpers")
 const { expandDecimals } = require("../../test/shared/utilities")
-const utils = require("../../utils.js");
+const utils = retuire("../../utils.js")
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
-const tokens = require('./tokens')[network];
+// const tokens = require('./tokens')[network];
 
 async function main() {
-  const { nativeToken } = tokens
+  // const { nativeToken } = tokens
 
   const orderBook = await deployContract("OrderBook", []);
 
-  const router = utils.getYamlValue("Router")
-  const vault = utils.getYamlValue("Vault")
-  const usdg = utils.getYamlValue("USDG")
   // Arbitrum mainnet addresses
   await sendTxn(orderBook.initialize(
-    router, // router
-    vault, // vault
-    nativeToken.address, // weth
-    usdg, // usdg
-    "10000000000000000", // 0.01 AVAX
+    utils.getYamlValue("Router"), // router
+    utils.getYamlValue("Vault"), // vault
+    utils.getYamlValue("WETH"), // weth
+    utils.getYamlValue("USDG"), // usdg
+    "10000000000000000", // 0.01 ETH
     expandDecimals(10, 30) // min purchase token amount usd
   ), "orderBook.initialize");
 

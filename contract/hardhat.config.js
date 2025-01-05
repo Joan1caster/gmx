@@ -78,7 +78,8 @@ module.exports = {
       url: ANVIL_URL,
       chainId: 31337,
       gasPrice: 10000000000,
-      accounts: getEnvAccounts(ANVIL_DEPLOY_KEY)
+      accounts: getEnvAccounts(ANVIL_DEPLOY_KEY),
+      loggingEnabled: true,
     },
     localhost: {
       timeout: 120000

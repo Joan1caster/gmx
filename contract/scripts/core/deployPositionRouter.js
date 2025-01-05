@@ -1,38 +1,35 @@
 const { getFrameSigner, deployContract, contractAt , sendTxn, readTmpAddresses, writeTmpAddresses } = require("../shared/helpers")
 const { expandDecimals } = require("../../test/shared/utilities")
 const { toUsd } = require("../../test/shared/units")
-const utils  = require("../../utils.js")
 
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const tokens = require('./tokens')[network];
 
 const {
-  ANVIL_URL,
-  ANVIL_DEPLOY_KEY,
   ARBITRUM_URL,
   ARBITRUM_CAP_KEEPER_KEY,
   AVAX_URL,
   AVAX_CAP_KEEPER_KEY,
 } = require("../../env.json")
 
-async function getAnvilValues(signer) {
-  const provider = new ethers.providers.JsonRpcProvider(ANVIL_URL)
-  const capKeeperWallet = new ethers.Wallet(ANVIL_DEPLOY_KEY).connect(provider)
-  const positionUtils = await contractAt("PositionUtils", utils.getYamlValue("PositionUtils"))
-  const vault = await contractAt("Vault", utils.getYamlValue("Vault"))
-  const router = await contractAt("Router", utils.getYamlValue("Router"))
-  const weth = await contractAt("WETH", utils.getYamlValue("WETH"))
+async function getArbValues(signer) {
+  const provider = new ethers.providers.JsonRpcProvider(ARBITRUM_URL)
+  const capKeeperWallet = new ethers.Wallet(ARBITRUM_CAP_KEEPER_KEY).connect(provider)
+
+  const vault = await contractAt("Vault", "0x489ee077994B6658eAfA855C308275EAd8097C4A")
+  const timelock = await contractAt("Timelock", await vault.gov(), signer)
+  const router = await contractAt("Router", await vault.router(), signer)
+  const weth = await contractAt("WETH", tokens.nativeToken.address)
   const referralStorage = await contractAt("ReferralStorage", "0xe6fab3F0c7199b0d34d7FbE83394fc0e0D06e99d")
-  const shortsTracker = await contractAt("ShortsTracker", utils.getYamlValue("ShortsTracker"), signer)
+  const shortsTracker = await contractAt("ShortsTracker", "0xf58eEc83Ba28ddd79390B9e90C4d3EbfF1d434da", signer)
   const shortsTrackerTimelock = await contractAt("ShortsTrackerTimelock", "0xf58eEc83Ba28ddd79390B9e90C4d3EbfF1d434da", signer)
   const depositFee = "30" // 0.3%
   const minExecutionFee = "100000000000000" // 0.0001 ETH
 
   return {
-    positionUtils,
     capKeeperWallet,
     vault,
-    // timelock,
+    timelock,
     router,
     weth,
     referralStorage,
@@ -40,7 +37,7 @@ async function getAnvilValues(signer) {
     shortsTrackerTimelock,
     depositFee,
     minExecutionFee,
-    // positionKeepers
+    positionKeepers
   }
 }
 
@@ -49,6 +46,7 @@ async function getAvaxValues(signer) {
   const capKeeperWallet = new ethers.Wallet(AVAX_CAP_KEEPER_KEY).connect(provider)
 
   const vault = await contractAt("Vault", "0x9ab2De34A33fB459b538c43f251eB825645e8595")
+  const timelock = await contractAt("Timelock", await vault.gov(), signer)
   const router = await contractAt("Router", await vault.router(), signer)
   const weth = await contractAt("WETH", tokens.nativeToken.address)
   const referralStorage = await contractAt("ReferralStorage", "0x827ED045002eCdAbEb6e2b0d1604cf5fC3d322F8")
@@ -79,17 +77,12 @@ async function getValues(signer) {
   if (network === "avax") {
     return getAvaxValues(signer)
   }
-
-  if (network === "anvil") {
-    return getAnvilValues(signer)
-  }
 }
 
 async function main() {
   const signer = await getFrameSigner()
 
   const {
-    positionUtils,
     capKeeperWallet,
     vault,
     timelock,
@@ -101,18 +94,22 @@ async function main() {
     minExecutionFee,
     referralStorage
   } = await getValues(signer)
-  const positionRouterArgs = [vault.address, router.address, weth.address, shortsTracker.address, depositFee, minExecutionFee]
-  const positionRouterFactor = await ethers.getContractFactory("PositionRouter",{
-    libraries: {
-      PositionUtils: positionUtils.address
-    }
-})
-  const positionRouter = positionRouterFactor.deploy(...positionRouterArgs)
-  setTimeout(function() {
-    console.log("1秒钟已到!");
-  }, 1000);
 
-  // await sendTxn(positionRouter.setReferralStorage(referralStorage.address), "positionRouter.setReferralStorage")
+  const positionUtils = await deployContract("PositionUtils", [])
+
+  const referralStorageGov = await contractAt("Timelock", await referralStorage.gov(), signer)
+
+  const positionRouterArgs = [vault.address, router.address, weth.address, shortsTracker.address, depositFee, minExecutionFee]
+  const positionRouter = await deployContract("PositionRouter", positionRouterArgs, "PositionRouter", {
+      libraries: {
+        PositionUtils: positionUtils.address
+      }
+  })
+
+  await sendTxn(positionRouter.setReferralStorage(referralStorage.address), "positionRouter.setReferralStorage")
+  await sendTxn(referralStorageGov.signalSetHandler(referralStorage.address, positionRouter.address, true), "referralStorage.signalSetHandler(positionRouter)")
+
+  await sendTxn(shortsTrackerTimelock.signalSetHandler(positionRouter.address, true), "shortsTrackerTimelock.signalSetHandler(positionRouter)")
 
   await sendTxn(router.addPlugin(positionRouter.address), "router.addPlugin")
 
@@ -121,7 +118,7 @@ async function main() {
 
   await sendTxn(positionRouter.setGov(await vault.gov()), "positionRouter.setGov")
 
-  await sendTxn(positionRouter.setAdmin( vault.gov()), "positionRouter.setAdmin")
+  await sendTxn(positionRouter.setAdmin(capKeeperWallet.address), "positionRouter.setAdmin")
 }
 
 main()

@@ -387,7 +387,7 @@ contract Vault is ReentrancyGuard, IVault {
         totalTokenWeights = _totalTokenWeights.add(_tokenWeight);
 
         // validate price feed
-        getMaxPrice(_token);
+        // getMaxPrice(_token);
     }
 
     function clearTokenConfig(address _token) external {
@@ -454,24 +454,24 @@ contract Vault is ReentrancyGuard, IVault {
         _validate(whitelistedTokens[_token], 16);
         useSwapPricing = true;
 
-        uint256 tokenAmount = _transferIn(_token);// 接收到的Token数量
+        uint256 tokenAmount = _transferIn(_token);
         _validate(tokenAmount > 0, 17);
 
-        updateCumulativeFundingRate(_token, _token);// 更新累计费率
+        updateCumulativeFundingRate(_token, _token);
 
-        uint256 price = getMinPrice(_token);// 查询Token的最低价格 - 美元
+        uint256 price = getMinPrice(_token);
 
-        uint256 usdgAmount = tokenAmount.mul(price).div(PRICE_PRECISION);// 用美元换算
+        uint256 usdgAmount = tokenAmount.mul(price).div(PRICE_PRECISION);
         usdgAmount = adjustForDecimals(usdgAmount, _token, usdg);
         _validate(usdgAmount > 0, 18);
 
-        uint256 feeBasisPoints = vaultUtils.getBuyUsdgFeeBasisPoints(_token, usdgAmount);// 计算Token换USDG的费用
-        uint256 amountAfterFees = _collectSwapFees(_token, tokenAmount, feeBasisPoints);// 计算Token换
+        uint256 feeBasisPoints = vaultUtils.getBuyUsdgFeeBasisPoints(_token, usdgAmount);
+        uint256 amountAfterFees = _collectSwapFees(_token, tokenAmount, feeBasisPoints);
         uint256 mintAmount = amountAfterFees.mul(price).div(PRICE_PRECISION);
         mintAmount = adjustForDecimals(mintAmount, _token, usdg);
 
-        _increaseUsdgAmount(_token, mintAmount);// update usdg mint amount
-        _increasePoolAmount(_token, amountAfterFees);// update usdg pool amount
+        _increaseUsdgAmount(_token, mintAmount);
+        _increasePoolAmount(_token, amountAfterFees);
 
         IUSDG(usdg).mint(_receiver, mintAmount);
 
@@ -540,14 +540,14 @@ contract Vault is ReentrancyGuard, IVault {
         // adjust usdgAmounts by the same usdgAmount as debt is shifted between the assets
         uint256 usdgAmount = amountIn.mul(priceIn).div(PRICE_PRECISION);
         usdgAmount = adjustForDecimals(usdgAmount, _tokenIn, usdg);
-        // get feeBasisPoints by token's class, if stable coin, it's lower
+
         uint256 feeBasisPoints = vaultUtils.getSwapFeeBasisPoints(_tokenIn, _tokenOut, usdgAmount);
-        uint256 amountOutAfterFees = _collectSwapFees(_tokenOut, amountOut, feeBasisPoints);// calculate swap fee, return amount amountOutAfterFees
+        uint256 amountOutAfterFees = _collectSwapFees(_tokenOut, amountOut, feeBasisPoints);
 
-        _increaseUsdgAmount(_tokenIn, usdgAmount);// increase user's usdg 
-        _decreaseUsdgAmount(_tokenOut, usdgAmount);// decrease glpmanager's usdg
+        _increaseUsdgAmount(_tokenIn, usdgAmount);
+        _decreaseUsdgAmount(_tokenOut, usdgAmount);
 
-        _increasePoolAmount(_tokenIn, amountIn); // increase 
+        _increasePoolAmount(_tokenIn, amountIn);
         _decreasePoolAmount(_tokenOut, amountOut);
 
         _validateBufferAmount(_tokenOut);
