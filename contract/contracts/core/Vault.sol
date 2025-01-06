@@ -561,16 +561,16 @@ contract Vault is ReentrancyGuard, IVault {
     }
 
     function increasePosition(address _account, address _collateralToken, address _indexToken, uint256 _sizeDelta, bool _isLong) external override nonReentrant {
-        _validate(isLeverageEnabled, 28);
-        _validateGasPrice();
-        _validateRouter(_account);
-        _validateTokens(_collateralToken, _indexToken, _isLong);
-        vaultUtils.validateIncreasePosition(_account, _collateralToken, _indexToken, _sizeDelta, _isLong);
+        _validate(isLeverageEnabled, 28);// 合约冻结开关
+        _validateGasPrice(); // gas超限检测
+        _validateRouter(_account); // 允许直接调用或通过router调用
+        _validateTokens(_collateralToken, _indexToken, _isLong); // 分做多和做空
+        vaultUtils.validateIncreasePosition(_account, _collateralToken, _indexToken, _sizeDelta, _isLong); // 附加额外监测机制（为空）
 
-        updateCumulativeFundingRate(_collateralToken, _indexToken);
+        updateCumulativeFundingRate(_collateralToken, _indexToken);// 更新费率
 
-        bytes32 key = getPositionKey(_account, _collateralToken, _indexToken, _isLong);
-        Position storage position = positions[key];
+        bytes32 key = getPositionKey(_account, _collateralToken, _indexToken, _isLong);// 获取头寸key：用户、抵押代币、标的代币、做多
+        Position storage position = positions[key];// 获取头寸
 
         uint256 price = _isLong ? getMaxPrice(_indexToken) : getMinPrice(_indexToken);
 
@@ -583,36 +583,32 @@ contract Vault is ReentrancyGuard, IVault {
         }
 
         uint256 fee = _collectMarginFees(_account, _collateralToken, _indexToken, _isLong, _sizeDelta, position.size, position.entryFundingRate);
-        uint256 collateralDelta = _transferIn(_collateralToken);
-        uint256 collateralDeltaUsd = tokenToUsdMin(_collateralToken, collateralDelta);
+        uint256 collateralDelta = _transferIn(_collateralToken); // 抵押代币获取数额
+        uint256 collateralDeltaUsd = tokenToUsdMin(_collateralToken, collateralDelta); // 换成USD数量
 
-        position.collateral = position.collateral.add(collateralDeltaUsd);
+        position.collateral = position.collateral.add(collateralDeltaUsd);// 更新抵押代币
         _validate(position.collateral >= fee, 29);
 
-        position.collateral = position.collateral.sub(fee);
-        position.entryFundingRate = getEntryFundingRate(_collateralToken, _indexToken, _isLong);
-        position.size = position.size.add(_sizeDelta);
-        position.lastIncreasedTime = block.timestamp;
+        position.collateral = position.collateral.sub(fee);// 扣除手续费
+        position.entryFundingRate = getEntryFundingRate(_collateralToken, _indexToken, _isLong);// 获取费率
+        position.size = position.size.add(_sizeDelta);// 添加借贷规模
+        position.lastIncreasedTime = block.timestamp;// 更新时间
 
         _validate(position.size > 0, 30);
         _validatePosition(position.size, position.collateral);
         validateLiquidation(_account, _collateralToken, _indexToken, _isLong, true);
 
-        // reserve tokens to pay profits on the position
+        // reserve tokens to pay profits on the position  预留新增的借贷规模那么多的token，能支撑token价格翻倍
         uint256 reserveDelta = usdToTokenMax(_collateralToken, _sizeDelta);
         position.reserveAmount = position.reserveAmount.add(reserveDelta);
         _increaseReservedAmount(_collateralToken, reserveDelta);
 
-        if (_isLong) {
-            // guaranteedUsd stores the sum of (position.size - position.collateral) for all positions
-            // if a fee is charged on the collateral then guaranteedUsd should be increased by that fee amount
-            // since (position.size - position.collateral) would have increased by `fee`
+        if (_isLong) {// 做多
+            // 实际被借贷的金额 = 借贷规模 + fee - 抵押金，这部分钱要作为保证金被锁定
             _increaseGuaranteedUsd(_collateralToken, _sizeDelta.add(fee));
             _decreaseGuaranteedUsd(_collateralToken, collateralDeltaUsd);
-            // treat the deposited collateral as part of the pool
+            // 把抵押金统计到pool，减掉fee
             _increasePoolAmount(_collateralToken, collateralDelta);
-            // fees need to be deducted from the pool since fees are deducted from position.collateral
-            // and collateral is treated as part of the pool
             _decreasePoolAmount(_collateralToken, usdToTokenMin(_collateralToken, fee));
         } else {
             if (globalShortSizes[_indexToken] == 0) {
@@ -1080,16 +1076,16 @@ contract Vault is ReentrancyGuard, IVault {
 
     function _validateTokens(address _collateralToken, address _indexToken, bool _isLong) private view {
         if (_isLong) {
-            _validate(_collateralToken == _indexToken, 42);
-            _validate(whitelistedTokens[_collateralToken], 43);
-            _validate(!stableTokens[_collateralToken], 44);
+            _validate(_collateralToken == _indexToken, 42);// 抵押代币和标的代币一致
+            _validate(whitelistedTokens[_collateralToken], 43);// 白名单
+            _validate(!stableTokens[_collateralToken], 44);// 抵押品非稳定币
             return;
         }
 
-        _validate(whitelistedTokens[_collateralToken], 45);
-        _validate(stableTokens[_collateralToken], 46);
-        _validate(!stableTokens[_indexToken], 47);
-        _validate(shortableTokens[_indexToken], 48);
+        _validate(whitelistedTokens[_collateralToken], 45);// 白名单
+        _validate(stableTokens[_collateralToken], 46);// 抵押品为稳定币
+        _validate(!stableTokens[_indexToken], 47);// 标的代币非稳定币
+        _validate(shortableTokens[_indexToken], 48);// 标的代币可做空
     }
 
     function _collectSwapFees(address _token, uint256 _amount, uint256 _feeBasisPoints) private returns (uint256) {
