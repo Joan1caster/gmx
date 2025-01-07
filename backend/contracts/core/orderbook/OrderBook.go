@@ -431,7 +431,7 @@ func (_OrderBook *OrderBookCallerSession) GetDecreaseOrder(_account common.Addre
 // GetIncreaseOrder is a free data retrieval call binding the contract method 0xd3bab1d1.
 //
 // Solidity: function getIncreaseOrder(address _account, uint256 _orderIndex) view returns(address purchaseToken, uint256 purchaseTokenAmount, address collateralToken, address indexToken, uint256 sizeDelta, bool isLong, uint256 triggerPrice, bool triggerAboveThreshold, uint256 executionFee)
-func (_OrderBook *OrderBookCaller) GetIncreaseOrder(opts *bind.CallOpts, _account common.Address, _orderIndex *big.Int) (struct {
+func (_OrderBook *OrderBookCaller) GetIncreaseOrder(opts *bind.CallOpts, _account common.Address, _orderIndex *big.Int) (struct {	
 	PurchaseToken         common.Address
 	PurchaseTokenAmount   *big.Int
 	CollateralToken       common.Address

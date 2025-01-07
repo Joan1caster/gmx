@@ -22,6 +22,11 @@ type Config struct {
 		NFTMarketcontractAddress string `yaml:"NFTMarketcontractAddress"`
 		ContractApiFile          string `yaml:"contractApiFile"`
 	} `yaml:"contract"`
+	Account struct {
+		PrivateKey     string `yaml:"privatekey"`
+		AccountAddress string `yaml:"address"`
+		NodeAddress    string `yaml:"eth_rpc_url"`
+	} `yaml:"account"`
 }
 
 // LoadConfig loads the configuration from the YAML file.

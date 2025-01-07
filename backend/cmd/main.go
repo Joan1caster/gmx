@@ -11,5 +11,5 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(config.AppConfig.Contract)
+	fmt.Println(config.AppConfig.Account)
 }
