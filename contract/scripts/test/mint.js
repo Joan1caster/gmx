@@ -123,17 +123,18 @@ async function increasePosition(minTokenNum, time) {
 	const _minOut = minTokenNum_.div(BTCPrice).mul(95).div(100); // 假设扣除fee还剩95%
 	const _sizeDelta = _minOut.mul(time)
 	const args = [[USDTaddress, BTCaddress], BTCaddress, minTokenNum_, _minOut, _sizeDelta, true, BTCPrice-1]
-	console.log(args)
 	await callWithRetries(router.increasePosition.bind(router), args)
+	console.log("execute increase position")
+
 }
 
 async function main() {
-    // await mint("100000"); // 给anvil的第二个第三个用户铸造btc、usdt
-    // await approve("10000");// 将钱授权给gmx的vault
-    // await updatePrice();// 将btc和USDT的价格传入
-    // await pricefeed();// 测试传入的价格
-	// await addLiquidity("1000", "1"); // gov添加流动性，gov获取GLP
-	await increasePosition("1000", 10) 
+    await mint("100000"); // 给anvil的第二个第三个用户铸造btc、usdt
+    await approve("10000");// 将钱授权给gmx的vault
+    await updatePrice();// 将btc和USDT的价格传入
+    await pricefeed();// 测试传入的价格
+	await addLiquidity("1000", "1"); // gov添加流动性，gov获取GLP
+	await increasePosition("1000", 10) // 买入1000U的BTC，开10倍多仓
 	process.exit(0);
 }
 
