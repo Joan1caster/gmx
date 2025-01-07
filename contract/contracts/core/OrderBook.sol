@@ -71,8 +71,8 @@ contract OrderBook is ReentrancyGuard, IOrderBook {
     uint256 public minPurchaseTokenAmountUsd;
     bool public isInitialized = false;
 
-    event CreateIncreaseOrder(
-        address indexed account,
+    event CreateIncreaseOrder( // 创建挂单
+        address indexed account, // 
         uint256 orderIndex,
         address purchaseToken,
         uint256 purchaseTokenAmount,
@@ -303,7 +303,7 @@ contract OrderBook is ReentrancyGuard, IOrderBook {
             order.executionFee
         );
     }
-
+    // 挂限价单,参数意义大体和市价单一致
     function createSwapOrder(
         address[] memory _path,
         uint256 _amountIn,
@@ -587,41 +587,41 @@ contract OrderBook is ReentrancyGuard, IOrderBook {
     }
 
     function createIncreaseOrder(
-        address[] memory _path,
-        uint256 _amountIn,
-        address _indexToken,
-        uint256 _minOut,
-        uint256 _sizeDelta,
-        address _collateralToken,
-        bool _isLong,
-        uint256 _triggerPrice,
-        bool _triggerAboveThreshold,
-        uint256 _executionFee,
-        bool _shouldWrap
+        address[] memory _path, // [稳定币, 标的币]
+        uint256 _amountIn, // 抵押金额
+        address _indexToken,// 标的币
+        uint256 _minOut, // 换算以后的标的币量
+        uint256 _sizeDelta,// 借贷规模
+        address _collateralToken,// 抵押币
+        bool _isLong, // true为做多
+        uint256 _triggerPrice, // 目标价格
+        bool _triggerAboveThreshold, // 平仓线触发机制，true为做多
+        uint256 _executionFee, // 是否执行
+        bool _shouldWrap // 是否用ETH支付押金
     ) external payable nonReentrant {
         // always need this call because of mandatory executionFee user has to transfer in ETH
-        _transferInETH();
+        _transferInETH();// 发送等量的weth给vault
 
         require(_executionFee >= minExecutionFee, "OrderBook: insufficient execution fee");
-        if (_shouldWrap) {
+        if (_shouldWrap) {// 使用ETH支付押金
             require(_path[0] == weth, "OrderBook: only weth could be wrapped");
             require(msg.value == _executionFee.add(_amountIn), "OrderBook: incorrect value transferred");
-        } else {
+        } else {// 只用ETH支付fee
             require(msg.value == _executionFee, "OrderBook: incorrect execution fee transferred");
             IRouter(router).pluginTransfer(_path[0], msg.sender, address(this), _amountIn);
         }
 
         address _purchaseToken = _path[_path.length - 1];
         uint256 _purchaseTokenAmount;
-        if (_path.length > 1) {
+        if (_path.length > 1) {// 把token转给vault，swap后给到orderbook
             require(_path[0] != _purchaseToken, "OrderBook: invalid _path");
             IERC20(_path[0]).safeTransfer(vault, _amountIn);
             _purchaseTokenAmount = _swap(_path, _minOut, address(this));
-        } else {
+        } else {// 直接用标的币做抵押
             _purchaseTokenAmount = _amountIn;
         }
 
-        {
+        {// 校验最小购买量
             uint256 _purchaseTokenAmountUsd = IVault(vault).tokenToUsdMin(_purchaseToken, _purchaseTokenAmount);
             require(_purchaseTokenAmountUsd >= minPurchaseTokenAmountUsd, "OrderBook: insufficient collateral");
         }
@@ -665,8 +665,8 @@ contract OrderBook is ReentrancyGuard, IOrderBook {
             _triggerAboveThreshold,
             _executionFee
         );
-        increaseOrdersIndex[_account] = _orderIndex.add(1);
-        increaseOrders[_account][_orderIndex] = order;
+        increaseOrdersIndex[_account] = _orderIndex.add(1);// 用户地址的order+1
+        increaseOrders[_account][_orderIndex] = order; // 用户-订单号做唯一索引
 
         emit CreateIncreaseOrder(
             _account,
@@ -682,7 +682,7 @@ contract OrderBook is ReentrancyGuard, IOrderBook {
             _executionFee
         );
     }
-
+    // 更新标的币的目标价格和借贷规模
     function updateIncreaseOrder(uint256 _orderIndex, uint256 _sizeDelta, uint256 _triggerPrice, bool _triggerAboveThreshold) external nonReentrant {
         IncreaseOrder storage order = increaseOrders[msg.sender][_orderIndex];
         require(order.account != address(0), "OrderBook: non-existent order");
@@ -702,7 +702,7 @@ contract OrderBook is ReentrancyGuard, IOrderBook {
             _triggerAboveThreshold
         );
     }
-
+    // 撤销挂单
     function cancelIncreaseOrder(uint256 _orderIndex) public nonReentrant {
         IncreaseOrder memory order = increaseOrders[msg.sender][_orderIndex];
         require(order.account != address(0), "OrderBook: non-existent order");
@@ -730,14 +730,14 @@ contract OrderBook is ReentrancyGuard, IOrderBook {
             order.executionFee
         );
     }
-
+    // 执行挂单
     function executeIncreaseOrder(address _address, uint256 _orderIndex, address payable _feeReceiver) override external nonReentrant {
         IncreaseOrder memory order = increaseOrders[_address][_orderIndex];
         require(order.account != address(0), "OrderBook: non-existent order");
 
         // increase long should use max price
         // increase short should use min price
-        (uint256 currentPrice, ) = validatePositionOrderPrice(
+        (uint256 currentPrice, ) = validatePositionOrderPrice(// 校验价格
             order.triggerAboveThreshold,
             order.triggerPrice,
             order.indexToken,
@@ -745,11 +745,11 @@ contract OrderBook is ReentrancyGuard, IOrderBook {
             true
         );
 
-        delete increaseOrders[_address][_orderIndex];
+        delete increaseOrders[_address][_orderIndex];// 删除挂单记录
 
-        IERC20(order.purchaseToken).safeTransfer(vault, order.purchaseTokenAmount);
+        IERC20(order.purchaseToken).safeTransfer(vault, order.purchaseTokenAmount);//把钱从orderbook转给vault
 
-        if (order.purchaseToken != order.collateralToken) {
+        if (order.purchaseToken != order.collateralToken) {// 标的币必须和抵押币一致
             address[] memory path = new address[](2);
             path[0] = order.purchaseToken;
             path[1] = order.collateralToken;
@@ -757,10 +757,10 @@ contract OrderBook is ReentrancyGuard, IOrderBook {
             uint256 amountOut = _swap(path, 0, address(this));
             IERC20(order.collateralToken).safeTransfer(vault, amountOut);
         }
-
+        // 执行vault
         IRouter(router).pluginIncreasePosition(order.account, order.collateralToken, order.indexToken, order.sizeDelta, order.isLong);
 
-        // pay executor
+        // 支付fee
         _transferOutETH(order.executionFee, _feeReceiver);
 
         emit ExecuteIncreaseOrder(
@@ -849,7 +849,7 @@ contract OrderBook is ReentrancyGuard, IOrderBook {
 
         // decrease long should use min price
         // decrease short should use max price
-        (uint256 currentPrice, ) = validatePositionOrderPrice(
+        (uint256 currentPrice, ) = validatePositionOrderPrice(// 校验价格
             order.triggerAboveThreshold,
             order.triggerPrice,
             order.indexToken,
@@ -857,9 +857,9 @@ contract OrderBook is ReentrancyGuard, IOrderBook {
             true
         );
 
-        delete decreaseOrders[_address][_orderIndex];
+        delete decreaseOrders[_address][_orderIndex];// 删除已完成订单（订单号只增不减）
 
-        uint256 amountOut = IRouter(router).pluginDecreasePosition(
+        uint256 amountOut = IRouter(router).pluginDecreasePosition(// 执行vault的
             order.account,
             order.collateralToken,
             order.indexToken,
