@@ -40,7 +40,8 @@ contract GlpManager is ReentrancyGuard, Governable, IGlpManager {
     mapping (address => bool) public isHandler;
 
     event Test(
-        uint256 arg
+        uint256 arg,
+        string name
     );
 
     event AddLiquidity(
@@ -217,13 +218,13 @@ contract GlpManager is ReentrancyGuard, Governable, IGlpManager {
         require(_amount > 0, "GlpManager: invalid _amount");
 
         // 获取usdg、glp总供应量
-        uint256 aumInUsdg = getAumInUsdg(true);
-        uint256 glpSupply = IERC20(glp).totalSupply();
+        uint256 aumInUsdg = getAumInUsdg(true);// 精度为30
+        uint256 glpSupply = IERC20(glp).totalSupply();// 精度为30
         // 转移资产到vault，铸造USDG
         IERC20(_token).safeTransferFrom(_fundingAccount, address(vault), _amount);
-        uint256 usdgAmount = vault.buyUSDG(_token, address(this));
+        uint256 usdgAmount = vault.buyUSDG(_token, address(this));// usdg精度为18
         require(usdgAmount >= _minUsdg, "GlpManager: insufficient USDG output");
-        // 换算成GLP
+        // 换算成GLP：如果第一次发行usdg则1:1换GLP，否则等比例换GLP
         uint256 mintAmount = aumInUsdg == 0 ? usdgAmount : usdgAmount.mul(glpSupply).div(aumInUsdg);
         require(mintAmount >= _minGlp, "GlpManager: insufficient GLP output");
 

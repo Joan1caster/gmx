@@ -162,7 +162,7 @@ contract VaultPriceFeed is IVaultPriceFeed {
     }
 
     function getPriceV1(address _token, bool _maximise, bool _includeAmmPrice) public view returns (uint256) {
-        uint256 price = getPrimaryPrice(_token, _maximise);
+        uint256 price = getPrimaryPrice(_token, _maximise);// 将价格换算成1e30
 
         if (_includeAmmPrice && isAmmEnabled) {
             uint256 ammPrice = getAmmPrice(_token);
@@ -205,7 +205,7 @@ contract VaultPriceFeed is IVaultPriceFeed {
             return price.mul(BASIS_POINTS_DIVISOR.add(_spreadBasisPoints)).div(BASIS_POINTS_DIVISOR);
         }
 
-        return price.mul(BASIS_POINTS_DIVISOR.sub(_spreadBasisPoints)).div(BASIS_POINTS_DIVISOR);
+        return price.mul(BASIS_POINTS_DIVISOR.sub(_spreadBasisPoints)).div(BASIS_POINTS_DIVISOR);// 收取利差
     }
 
     function getPriceV2(address _token, bool _maximise, bool _includeAmmPrice) public view returns (uint256) {
@@ -333,7 +333,8 @@ contract VaultPriceFeed is IVaultPriceFeed {
         require(price > 0, "VaultPriceFeed: could not fetch price");
         // normalise price precision
         uint256 _priceDecimals = priceDecimals[_token];
-        return price.mul(PRICE_PRECISION).div(10 ** _priceDecimals);
+        uint256 priceReturn = price.mul(PRICE_PRECISION).div(10 ** _priceDecimals);
+        return priceReturn;
     }
 
     function getSecondaryPrice(address _token, uint256 _referencePrice, bool _maximise) public view returns (uint256) {

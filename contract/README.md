@@ -22,3 +22,10 @@ Install packages:
     ```bash
     npx hardhat run scripts/test/mint.js --network anvil
     ```
+
+## recompile
+    删除 .\cache 
+
+    删除 .\artifacts 
+
+    重新编译 npx hardhat compile

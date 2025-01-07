@@ -1101,6 +1101,7 @@ interface VaultTestInterface extends ethers.utils.Interface {
     "LiquidatePosition(bytes32,address,address,address,bool,uint256,uint256,uint256,int256,uint256)": EventFragment;
     "SellUSDG(address,address,uint256,uint256,uint256)": EventFragment;
     "Swap(address,address,address,uint256,uint256,uint256,uint256)": EventFragment;
+    "Test(uint256,string)": EventFragment;
     "UpdateFundingRate(address,uint256)": EventFragment;
     "UpdatePnl(bytes32,bool,uint256)": EventFragment;
     "UpdatePosition(bytes32,uint256,uint256,uint256,uint256,uint256,int256,uint256)": EventFragment;
@@ -1124,6 +1125,7 @@ interface VaultTestInterface extends ethers.utils.Interface {
   getEvent(nameOrSignatureOrTopic: "LiquidatePosition"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "SellUSDG"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Swap"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "Test"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "UpdateFundingRate"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "UpdatePnl"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "UpdatePosition"): EventFragment;
@@ -3207,6 +3209,11 @@ export class VaultTest extends BaseContract {
         feeBasisPoints: BigNumber;
       }
     >;
+
+    Test(
+      arg?: null,
+      name?: null
+    ): TypedEventFilter<[BigNumber, string], { arg: BigNumber; name: string }>;
 
     UpdateFundingRate(
       token?: null,

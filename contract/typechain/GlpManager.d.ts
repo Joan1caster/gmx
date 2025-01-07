@@ -274,7 +274,7 @@ interface GlpManagerInterface extends ethers.utils.Interface {
   events: {
     "AddLiquidity(address,address,uint256,uint256,uint256,uint256,uint256)": EventFragment;
     "RemoveLiquidity(address,address,uint256,uint256,uint256,uint256,uint256)": EventFragment;
-    "Test(uint256)": EventFragment;
+    "Test(uint256,string)": EventFragment;
   };
 
   getEvent(nameOrSignatureOrTopic: "AddLiquidity"): EventFragment;
@@ -765,7 +765,10 @@ export class GlpManager extends BaseContract {
       }
     >;
 
-    Test(arg?: null): TypedEventFilter<[BigNumber], { arg: BigNumber }>;
+    Test(
+      arg?: null,
+      name?: null
+    ): TypedEventFilter<[BigNumber, string], { arg: BigNumber; name: string }>;
   };
 
   estimateGas: {
