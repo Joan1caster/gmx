@@ -24,6 +24,7 @@ const _GLPManager = utils.getYamlValue("GlpManager")
 const BTCPrice = ethers.BigNumber.from(96000);
 const USDTPrice = ethers.BigNumber.from(1);
 const USDGDecimals = 18;
+let orderIndex = 0
 
 async function approve(allowanceNum) {
 	const amount = ethers.BigNumber.from(allowanceNum);
@@ -135,14 +136,30 @@ async function increasePosition(amountIn, time) {
 	const signer = new ethers.Wallet(user1key).connect(provider) 
 	const orderbook = await contractAt("OrderBook", OrderBookaddress, signer)
 	const arg = [[USDTaddress, BTCaddress], amount, BTCaddress, _minOut, _sizeDelta, USDTaddress, true, BTCPrice-1, true, ExecutionFee, false, {value:ExecutionFee}]
-	console.log(`_minOut:${_minOut} _sizeDelta:${_sizeDelta} ExecutionFee:${ExecutionFee} `)
 	const tx = await callWithRetries(orderbook.createIncreaseOrder.bind(orderbook), arg)
+	console.log(`create increase order succeed.`)
+
 }
 
 async function ExecuteIncreaseOrder() {
 	const orderbook = await contractAt("OrderBook", OrderBookaddress)
 	await callWithRetries(orderbook.executeIncreaseOrder.bind(orderbook), [TestUser1Address, 0, GOVAddress])
 	console.log(`executeIncreaseOrder succeed`)
+}
+
+async function DecreasePosition(_sizeDelta, _collateralDelta) {
+	const btc = await contractAt("BTC", BTCaddress)
+	const btcDecimals = await btc.decimals()
+	const usdt = await contractAt("USDT", USDTaddress)
+	const usdtDecimals = await usdt.decimals()	
+	const signer = new ethers.Wallet(user1key).connect(provider) 
+	const orderbook = await contractAt("OrderBook", OrderBookaddress, signer)
+	const sizeDelta = ethers.utils.parseUnits(_sizeDelta, btcDecimals)
+	const collateralDelta = ethers.utils.parseUnits(_collateralDelta, usdtDecimals)
+	// 低于目标价格触发
+	arg = [BTCaddress, sizeDelta, USDTaddress, collateralDelta, true, BTCPrice, false]
+	await callWithRetries(orderbook.createDecreaseOrder.bind(orderbook), arg)
+	console.log("create decrease order succeed")
 }
 
 async function main() {
@@ -153,7 +170,7 @@ async function main() {
 	await approvePlugin() // gov授权plugin，用户授权plugin
 	await increasePosition("1000", 10)// user1买入1000U的BTC，开10倍多仓
 	await updatePrice(BTCPrice.add(1),USDTPrice);// 假设BTC价格上涨了1美元
-	await pricefeed();
+	await pricefeed(); // 查看上涨后的价格
 	await ExecuteIncreaseOrder()// 执行开辟多仓
 	process.exit(0);
 }

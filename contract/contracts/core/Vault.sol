@@ -563,67 +563,67 @@ contract Vault is ReentrancyGuard, IVault {
     }
 
     function increasePosition(address _account, address _collateralToken, address _indexToken, uint256 _sizeDelta, bool _isLong) external override nonReentrant {
-        // _validate(isLeverageEnabled, 28);// 合约冻结开关
-        // _validateGasPrice(); // gas超限检测
-        // _validateRouter(_account); // 允许直接调用或通过router调用
-        // _validateTokens(_collateralToken, _indexToken, _isLong); // 分做多和做空
-        // vaultUtils.validateIncreasePosition(_account, _collateralToken, _indexToken, _sizeDelta, _isLong); // 附加额外监测机制（为空）
+        _validate(isLeverageEnabled, 28);// 合约冻结开关
+        _validateGasPrice(); // gas超限检测
+        _validateRouter(_account); // 允许直接调用或通过router调用
+        _validateTokens(_collateralToken, _indexToken, _isLong); // 分做多和做空
+        vaultUtils.validateIncreasePosition(_account, _collateralToken, _indexToken, _sizeDelta, _isLong); // 附加额外监测机制（为空）
 
-        // updateCumulativeFundingRate(_collateralToken, _indexToken);// 更新费率
+        updateCumulativeFundingRate(_collateralToken, _indexToken);// 更新费率
 
-        // bytes32 key = getPositionKey(_account, _collateralToken, _indexToken, _isLong);// 获取头寸key：用户、抵押代币、标的代币、做多
-        // Position storage position = positions[key];// 获取头寸
+        bytes32 key = getPositionKey(_account, _collateralToken, _indexToken, _isLong);// 获取头寸key：用户、抵押代币、标的代币、做多
+        Position storage position = positions[key];// 获取头寸
 
-        // uint256 price = _isLong ? getMaxPrice(_indexToken) : getMinPrice(_indexToken);
+        uint256 price = _isLong ? getMaxPrice(_indexToken) : getMinPrice(_indexToken);
 
-        // if (position.size == 0) {
-        //     position.averagePrice = price;
-        // }
+        if (position.size == 0) {
+            position.averagePrice = price;
+        }
 
-        // if (position.size > 0 && _sizeDelta > 0) {
-        //     position.averagePrice = getNextAveragePrice(_indexToken, position.size, position.averagePrice, _isLong, price, _sizeDelta, position.lastIncreasedTime);
-        // }
+        if (position.size > 0 && _sizeDelta > 0) {
+            position.averagePrice = getNextAveragePrice(_indexToken, position.size, position.averagePrice, _isLong, price, _sizeDelta, position.lastIncreasedTime);
+        }
 
-        // uint256 fee = _collectMarginFees(_account, _collateralToken, _indexToken, _isLong, _sizeDelta, position.size, position.entryFundingRate);
-        // uint256 collateralDelta = _transferIn(_collateralToken); // 抵押代币获取数额
-        // uint256 collateralDeltaUsd = tokenToUsdMin(_collateralToken, collateralDelta); // 换成USD数量
+        uint256 fee = _collectMarginFees(_account, _collateralToken, _indexToken, _isLong, _sizeDelta, position.size, position.entryFundingRate);
+        uint256 collateralDelta = _transferIn(_collateralToken); // 抵押代币获取数额
+        uint256 collateralDeltaUsd = tokenToUsdMin(_collateralToken, collateralDelta); // 换成USD数量
 
-        // position.collateral = position.collateral.add(collateralDeltaUsd);// 更新抵押代币
-        // _validate(position.collateral >= fee, 29);
+        position.collateral = position.collateral.add(collateralDeltaUsd);// 更新抵押代币
+        _validate(position.collateral >= fee, 29);
 
-        // position.collateral = position.collateral.sub(fee);// 扣除手续费
-        // position.entryFundingRate = getEntryFundingRate(_collateralToken, _indexToken, _isLong);// 获取费率
-        // position.size = position.size.add(_sizeDelta);// 添加借贷规模
-        // position.lastIncreasedTime = block.timestamp;// 更新时间
+        position.collateral = position.collateral.sub(fee);// 扣除手续费
+        position.entryFundingRate = getEntryFundingRate(_collateralToken, _indexToken, _isLong);// 获取费率
+        position.size = position.size.add(_sizeDelta);// 添加借贷规模
+        position.lastIncreasedTime = block.timestamp;// 更新时间
 
-        // _validate(position.size > 0, 30);
-        // _validatePosition(position.size, position.collateral);
-        // validateLiquidation(_account, _collateralToken, _indexToken, _isLong, true);
+        _validate(position.size > 0, 30);
+        _validatePosition(position.size, position.collateral);
+        validateLiquidation(_account, _collateralToken, _indexToken, _isLong, true);
 
-        // // reserve tokens to pay profits on the position  预留新增的借贷规模那么多的token，能支撑token价格翻倍
-        // uint256 reserveDelta = usdToTokenMax(_collateralToken, _sizeDelta);
-        // position.reserveAmount = position.reserveAmount.add(reserveDelta);
-        // _increaseReservedAmount(_collateralToken, reserveDelta);
+        // reserve tokens to pay profits on the position  预留新增的借贷规模那么多的token，能支撑token价格翻倍
+        uint256 reserveDelta = usdToTokenMax(_collateralToken, _sizeDelta);
+        position.reserveAmount = position.reserveAmount.add(reserveDelta);
+        _increaseReservedAmount(_collateralToken, reserveDelta);
 
-        // if (_isLong) {// 做多
-        //     // 实际被借贷的金额 = 借贷规模 + fee - 抵押金，这部分钱要作为保证金被锁定
-        //     _increaseGuaranteedUsd(_collateralToken, _sizeDelta.add(fee));
-        //     _decreaseGuaranteedUsd(_collateralToken, collateralDeltaUsd);
-        //     // 把抵押金统计到pool，减掉fee
-        //     _increasePoolAmount(_collateralToken, collateralDelta);
-        //     _decreasePoolAmount(_collateralToken, usdToTokenMin(_collateralToken, fee));
-        // } else {
-        //     if (globalShortSizes[_indexToken] == 0) {
-        //         globalShortAveragePrices[_indexToken] = price;
-        //     } else {
-        //         globalShortAveragePrices[_indexToken] = getNextGlobalShortAveragePrice(_indexToken, price, _sizeDelta);
-        //     }
+        if (_isLong) {// 做多
+            // 实际被借贷的金额 = 借贷规模 + fee - 抵押金，这部分钱要作为保证金被锁定
+            _increaseGuaranteedUsd(_collateralToken, _sizeDelta.add(fee));
+            _decreaseGuaranteedUsd(_collateralToken, collateralDeltaUsd);
+            // 把抵押金统计到pool，减掉fee
+            _increasePoolAmount(_collateralToken, collateralDelta);
+            _decreasePoolAmount(_collateralToken, usdToTokenMin(_collateralToken, fee));
+        } else {
+            if (globalShortSizes[_indexToken] == 0) {
+                globalShortAveragePrices[_indexToken] = price;
+            } else {
+                globalShortAveragePrices[_indexToken] = getNextGlobalShortAveragePrice(_indexToken, price, _sizeDelta);
+            }
 
-        //     _increaseGlobalShortSize(_indexToken, _sizeDelta);
-        // }
+            _increaseGlobalShortSize(_indexToken, _sizeDelta);
+        }
 
-        // emit IncreasePosition(key, _account, _collateralToken, _indexToken, collateralDeltaUsd, _sizeDelta, _isLong, price, fee);
-        // emit UpdatePosition(key, position.size, position.collateral, position.averagePrice, position.entryFundingRate, position.reserveAmount, position.realisedPnl, price);
+        emit IncreasePosition(key, _account, _collateralToken, _indexToken, collateralDeltaUsd, _sizeDelta, _isLong, price, fee);
+        emit UpdatePosition(key, position.size, position.collateral, position.averagePrice, position.entryFundingRate, position.reserveAmount, position.realisedPnl, price);
     }
 
     function decreasePosition(address _account, address _collateralToken, address _indexToken, uint256 _collateralDelta, uint256 _sizeDelta, bool _isLong, address _receiver) external override nonReentrant returns (uint256) {
