@@ -15,7 +15,7 @@ Install packages:
     npx hardhat run scripts/deploy/deployVault.js --network anvil
     npx hardhat run scripts/deploy/deployOrderbook.js --network anvil
     npx hardhat run scripts/deploy/deployPositionManager.js --network anvil
-
+npx hardhat run scripts/test/mint.js --network anvil
     ```
 
 ## interact

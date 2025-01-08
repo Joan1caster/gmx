@@ -596,7 +596,7 @@ contract OrderBook is ReentrancyGuard, IOrderBook {
         bool _isLong, // true为做多
         uint256 _triggerPrice, // 目标价格
         bool _triggerAboveThreshold, // 平仓线触发机制，true为做多
-        uint256 _executionFee, // 是否执行
+        uint256 _executionFee, // 执行费用
         bool _shouldWrap // 是否用ETH支付押金
     ) external payable nonReentrant {
         // always need this call because of mandatory executionFee user has to transfer in ETH
@@ -621,23 +621,23 @@ contract OrderBook is ReentrancyGuard, IOrderBook {
             _purchaseTokenAmount = _amountIn;
         }
 
-        {// 校验最小购买量
-            uint256 _purchaseTokenAmountUsd = IVault(vault).tokenToUsdMin(_purchaseToken, _purchaseTokenAmount);
-            require(_purchaseTokenAmountUsd >= minPurchaseTokenAmountUsd, "OrderBook: insufficient collateral");
-        }
+        // {// 校验最小购买量
+        //     uint256 _purchaseTokenAmountUsd = IVault(vault).tokenToUsdMin(_purchaseToken, _purchaseTokenAmount);
+        //     require(_purchaseTokenAmountUsd >= minPurchaseTokenAmountUsd, "OrderBook: insufficient collateral");
+        // }
 
-        _createIncreaseOrder(
-            msg.sender,
-            _purchaseToken,
-            _purchaseTokenAmount,
-            _collateralToken,
-            _indexToken,
-            _sizeDelta,
-            _isLong,
-            _triggerPrice,
-            _triggerAboveThreshold,
-            _executionFee
-        );
+        // _createIncreaseOrder(
+        //     msg.sender,
+        //     _purchaseToken,
+        //     _purchaseTokenAmount,
+        //     _collateralToken,
+        //     _indexToken,
+        //     _sizeDelta,
+        //     _isLong,
+        //     _triggerPrice,
+        //     _triggerAboveThreshold,
+        //     _executionFee
+        // );
     }
 
     function _createIncreaseOrder(

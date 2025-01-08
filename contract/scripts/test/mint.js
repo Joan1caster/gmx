@@ -15,6 +15,7 @@ const user2key = utils.getYamlValue("Usr2Key")
 const GOVKey = utils.getYamlValue("GOVKey")
 const Vaultaddress = utils.getYamlValue("Vault")
 const Routeraddress = utils.getYamlValue("Router")
+const OrderBookaddress = utils.getYamlValue("OrderBook")
 const TestUser1Address = utils.getYamlValue("Usr1Address")
 const TestUser2Address = utils.getYamlValue("Usr2Address")
 const GOVAddress = utils.getYamlValue("GOVAddress")
@@ -38,6 +39,7 @@ async function approve(allowanceNum) {
             console.log(`succeed ${signer.address} allowance ${tokenName} :`, ethers.utils.formatUnits(AllowanceNum, TokenDecimal));
 
             await callWithRetries(Contract.approve.bind(Contract), [_GLPManager, amount.mul(ethers.BigNumber.from(10).pow(TokenDecimal))])
+            await callWithRetries(Contract.approve.bind(Contract), [Routeraddress, amount.mul(ethers.BigNumber.from(10).pow(TokenDecimal))])
 			}
     }
 }
@@ -113,28 +115,47 @@ async function addLiquidity(num) {
 	}	
 }
 
-async function increasePosition(minTokenNum, time) {
+async function increasePosition(amountIn, time) {
 	// 输入USDT，跟随BTC，做多，市价单
 	const signer = new ethers.Wallet(user1key).connect(provider)   
 	const router = await contractAt("Router", Routeraddress, signer)	
 	const usdt = await contractAt("USDT", USDTaddress)
+	await callWithRetries(router.approvePlugin.bind(router), [OrderBookaddress])
+	const isApproved = await router.approvedPlugins(TestUser1Address, OrderBookaddress);
+	console.log("Is approved:", isApproved);  // 返回 true/false
 	const usdtDecimals = await usdt.decimals()	
-	const minTokenNum_ = ethers.utils.parseUnits(minTokenNum.toString(), usdtDecimals);
-	const _minOut = minTokenNum_.div(BTCPrice).mul(95).div(100); // 假设扣除fee还剩95%
+	const _amountIn = ethers.utils.parseUnits(amountIn.toString(), usdtDecimals);
+	const _minOut = _amountIn.div(BTCPrice).mul(95).div(100); // 假设扣除fee还剩95%
 	const _sizeDelta = _minOut.mul(time)
-	const args = [[USDTaddress, BTCaddress], BTCaddress, minTokenNum_, _minOut, _sizeDelta, true, BTCPrice-1]
+	const _price = BTCPrice.mul(ethers.BigNumber.from(10).pow(30))
+	const args = [[USDTaddress, BTCaddress], BTCaddress, _amountIn, _minOut, _sizeDelta, true, _price]
 	await callWithRetries(router.increasePosition.bind(router), args)
 	console.log("execute increase position")
 
 }
 
+async function OrderBook_increasePosition(amountIn, time) {
+	const usdt = await contractAt("USDT", USDTaddress)
+	const usdtDecimals = await usdt.decimals()	
+	const amount = ethers.utils.parseUnits(amountIn, usdtDecimals)
+	const _minOut = amount.div(BTCPrice).mul(95).div(100);
+	const _sizeDelta = amount.mul(time)
+	const ExecutionFee = ethers.BigNumber.from("100000000000000000")
+	const signer = new ethers.Wallet(user1key).connect(provider) 
+	const orderbook = await contractAt("OrderBook", OrderBookaddress, signer)
+	const arg = [[USDTaddress, BTCaddress], amount, BTCaddress, _minOut, _sizeDelta, USDTaddress, true, BTCPrice-1, true, ExecutionFee, false, {value:ExecutionFee}]
+	console.log(`_minOut:${_minOut} _sizeDelta:${_sizeDelta} ExecutionFee:${ExecutionFee} `)
+	const back = await callWithRetries(orderbook.createIncreaseOrder.bind(orderbook), arg)
+}
+
 async function main() {
-    await mint("100000"); // 给anvil的第二个第三个用户铸造btc、usdt
-    await approve("10000");// 将钱授权给gmx的vault
-    await updatePrice();// 将btc和USDT的价格传入
-    await pricefeed();// 测试传入的价格
-	await addLiquidity("1000", "1"); // gov添加流动性，gov获取GLP
-	await increasePosition("1000", 10) // 买入1000U的BTC，开10倍多仓
+    // await mint("100000"); // 给anvil的第二个第三个用户铸造btc、usdt
+    // await approve("10000");// 将钱授权给gmx的router/glpmanager
+    // await updatePrice();// 将btc和USDT的价格传入
+    // await pricefeed();// 测试传入的价格
+	// await addLiquidity("1000", "1"); // gov添加流动性，gov获取GLP
+	// await increasePosition("1000", 10) // user1买入1000U的BTC，开10倍多仓
+	await OrderBook_increasePosition("1000", 10)// user1买入1000U的BTC，开10倍多仓
 	process.exit(0);
 }
 

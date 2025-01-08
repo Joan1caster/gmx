@@ -72,7 +72,7 @@ contract Router is IRouter {
 
     function pluginIncreasePosition(address _account, address _collateralToken, address _indexToken, uint256 _sizeDelta, bool _isLong) external override {
         _validatePlugin(_account);
-        IVault(vault).increasePosition(_account, _collateralToken, _indexToken, _sizeDelta, _isLong);
+        // IVault(vault).increasePosition(_account, _collateralToken, _indexToken, _sizeDelta, _isLong);
     }
 
     function pluginDecreasePosition(address _account, address _collateralToken, address _indexToken, uint256 _collateralDelta, uint256 _sizeDelta, bool _isLong, address _receiver) external override returns (uint256) {
@@ -107,14 +107,14 @@ contract Router is IRouter {
     }
 
     function increasePosition(address[] memory _path, address _indexToken, uint256 _amountIn, uint256 _minOut, uint256 _sizeDelta, bool _isLong, uint256 _price) external {
-        // if (_amountIn > 0) {
-        //     IERC20(_path[0]).safeTransferFrom(_sender(), vault, _amountIn);
-        // }
-        // if (_path.length > 1 && _amountIn > 0) {
-        //     uint256 amountOut = _swap(_path, _minOut, address(this));
-        //     IERC20(_path[_path.length - 1]).safeTransfer(vault, amountOut);
-        // }
-        // _increasePosition(_path[_path.length - 1], _indexToken, _sizeDelta, _isLong, _price);
+        if (_amountIn > 0) {
+            IERC20(_path[0]).safeTransferFrom(_sender(), vault, _amountIn);
+        }
+        if (_path.length > 1 && _amountIn > 0) {
+            uint256 amountOut = _swap(_path, _minOut, address(this));
+            IERC20(_path[_path.length - 1]).safeTransfer(vault, amountOut);
+        }
+        _increasePosition(_path[_path.length - 1], _indexToken, _sizeDelta, _isLong, _price);
     }
 
     function increasePositionETH(address[] memory _path, address _indexToken, uint256 _minOut, uint256 _sizeDelta, bool _isLong, uint256 _price) external payable {
