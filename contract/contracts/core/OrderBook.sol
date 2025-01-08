@@ -215,6 +215,13 @@ contract OrderBook is ReentrancyGuard, IOrderBook {
         uint256 executionFee
     );
 
+    event Test(
+        uint256 arg1,
+        uint256 arg2,
+        uint256 arg3,
+        uint256 arg4
+    );
+
     event Initialize(
         address router,
         address vault,
@@ -610,7 +617,6 @@ contract OrderBook is ReentrancyGuard, IOrderBook {
             require(msg.value == _executionFee, "OrderBook: incorrect execution fee transferred");
             IRouter(router).pluginTransfer(_path[0], msg.sender, address(this), _amountIn);
         }
-
         address _purchaseToken = _path[_path.length - 1];
         uint256 _purchaseTokenAmount;
         if (_path.length > 1) {// 把token转给vault，swap后给到orderbook
@@ -621,23 +627,23 @@ contract OrderBook is ReentrancyGuard, IOrderBook {
             _purchaseTokenAmount = _amountIn;
         }
 
-        // {// 校验最小购买量
-        //     uint256 _purchaseTokenAmountUsd = IVault(vault).tokenToUsdMin(_purchaseToken, _purchaseTokenAmount);
-        //     require(_purchaseTokenAmountUsd >= minPurchaseTokenAmountUsd, "OrderBook: insufficient collateral");
-        // }
+        {// 校验最小购买量
+            uint256 _purchaseTokenAmountUsd = IVault(vault).tokenToUsdMin(_purchaseToken, _purchaseTokenAmount);
+            require(_purchaseTokenAmountUsd >= minPurchaseTokenAmountUsd, "OrderBook: insufficient collateral");
+        }
 
-        // _createIncreaseOrder(
-        //     msg.sender,
-        //     _purchaseToken,
-        //     _purchaseTokenAmount,
-        //     _collateralToken,
-        //     _indexToken,
-        //     _sizeDelta,
-        //     _isLong,
-        //     _triggerPrice,
-        //     _triggerAboveThreshold,
-        //     _executionFee
-        // );
+        _createIncreaseOrder(
+            msg.sender,
+            _purchaseToken,
+            _purchaseTokenAmount,
+            _collateralToken,
+            _indexToken,
+            _sizeDelta,
+            _isLong,
+            _triggerPrice,
+            _triggerAboveThreshold,
+            _executionFee
+        );
     }
 
     function _createIncreaseOrder(
@@ -735,8 +741,6 @@ contract OrderBook is ReentrancyGuard, IOrderBook {
         IncreaseOrder memory order = increaseOrders[_address][_orderIndex];
         require(order.account != address(0), "OrderBook: non-existent order");
 
-        // increase long should use max price
-        // increase short should use min price
         (uint256 currentPrice, ) = validatePositionOrderPrice(// 校验价格
             order.triggerAboveThreshold,
             order.triggerPrice,

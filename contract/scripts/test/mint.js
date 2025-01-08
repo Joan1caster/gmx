@@ -62,7 +62,7 @@ async function mint(_amount) {
 }
 
 
-async function updatePrice() {
+async function updatePrice(_BTCPrice, _USDTPrice) {
 	const _BTCPriceFeed = utils.getYamlValue("BTCPriceFeed")
 	const _USDTPriceFeed = utils.getYamlValue("USDTPriceFeed")
 	const BTCPriceFeed = await contractAt("BTCPriceFeed",_BTCPriceFeed)
@@ -72,10 +72,10 @@ async function updatePrice() {
 	const btc = await contractAt("BTC", BTCaddress)
 	const btcDecimals = await btc.decimals()
 	// 将数字乘以原本的decimal
-	await sendTxn(BTCPriceFeed.setLatestAnswer(BTCPrice.mul(ethers.BigNumber.from(10).pow(btcDecimals))), "BTCPriceFeed.setLatestAnswer")
+	await sendTxn(BTCPriceFeed.setLatestAnswer(_BTCPrice.mul(ethers.BigNumber.from(10).pow(btcDecimals))), "BTCPriceFeed.setLatestAnswer")
 	console.log(`set btc price: ${BTCPrice} USD`)
 
-	await sendTxn(USDTPriceFeed.setLatestAnswer(USDTPrice.mul(ethers.BigNumber.from(10).pow(usdtDecimals))), "USDTPriceFeed.setLatestAnswer")
+	await sendTxn(USDTPriceFeed.setLatestAnswer(_USDTPrice.mul(ethers.BigNumber.from(10).pow(usdtDecimals))), "USDTPriceFeed.setLatestAnswer")
 	console.log(`set usdt price: ${USDTPrice} USD`)
 }
 
@@ -115,26 +115,17 @@ async function addLiquidity(num) {
 	}	
 }
 
-async function increasePosition(amountIn, time) {
-	// 输入USDT，跟随BTC，做多，市价单
-	const signer = new ethers.Wallet(user1key).connect(provider)   
+async function approvePlugin() {
+	const routerGOV = await contractAt("Router", Routeraddress)
+	await callWithRetries(routerGOV.addPlugin.bind(routerGOV), [OrderBookaddress])
+	const signer = new ethers.Wallet(user1key).connect(provider)  
 	const router = await contractAt("Router", Routeraddress, signer)	
-	const usdt = await contractAt("USDT", USDTaddress)
 	await callWithRetries(router.approvePlugin.bind(router), [OrderBookaddress])
 	const isApproved = await router.approvedPlugins(TestUser1Address, OrderBookaddress);
 	console.log("Is approved:", isApproved);  // 返回 true/false
-	const usdtDecimals = await usdt.decimals()	
-	const _amountIn = ethers.utils.parseUnits(amountIn.toString(), usdtDecimals);
-	const _minOut = _amountIn.div(BTCPrice).mul(95).div(100); // 假设扣除fee还剩95%
-	const _sizeDelta = _minOut.mul(time)
-	const _price = BTCPrice.mul(ethers.BigNumber.from(10).pow(30))
-	const args = [[USDTaddress, BTCaddress], BTCaddress, _amountIn, _minOut, _sizeDelta, true, _price]
-	await callWithRetries(router.increasePosition.bind(router), args)
-	console.log("execute increase position")
-
 }
 
-async function OrderBook_increasePosition(amountIn, time) {
+async function increasePosition(amountIn, time) {
 	const usdt = await contractAt("USDT", USDTaddress)
 	const usdtDecimals = await usdt.decimals()	
 	const amount = ethers.utils.parseUnits(amountIn, usdtDecimals)
@@ -145,17 +136,25 @@ async function OrderBook_increasePosition(amountIn, time) {
 	const orderbook = await contractAt("OrderBook", OrderBookaddress, signer)
 	const arg = [[USDTaddress, BTCaddress], amount, BTCaddress, _minOut, _sizeDelta, USDTaddress, true, BTCPrice-1, true, ExecutionFee, false, {value:ExecutionFee}]
 	console.log(`_minOut:${_minOut} _sizeDelta:${_sizeDelta} ExecutionFee:${ExecutionFee} `)
-	const back = await callWithRetries(orderbook.createIncreaseOrder.bind(orderbook), arg)
+	const tx = await callWithRetries(orderbook.createIncreaseOrder.bind(orderbook), arg)
+}
+
+async function ExecuteIncreaseOrder() {
+	const orderbook = await contractAt("OrderBook", OrderBookaddress)
+	await callWithRetries(orderbook.executeIncreaseOrder.bind(orderbook), [TestUser1Address, 0, GOVAddress])
+	console.log(`executeIncreaseOrder succeed`)
 }
 
 async function main() {
-    // await mint("100000"); // 给anvil的第二个第三个用户铸造btc、usdt
-    // await approve("10000");// 将钱授权给gmx的router/glpmanager
-    // await updatePrice();// 将btc和USDT的价格传入
-    // await pricefeed();// 测试传入的价格
-	// await addLiquidity("1000", "1"); // gov添加流动性，gov获取GLP
-	// await increasePosition("1000", 10) // user1买入1000U的BTC，开10倍多仓
-	await OrderBook_increasePosition("1000", 10)// user1买入1000U的BTC，开10倍多仓
+    await mint("100000"); // 给anvil的第1、2、3个用户铸造btc、usdt
+    await approve("10000");// 将钱授权给gmx的router(用作杠杆交易)/glpmanager(用作质押)
+    await updatePrice(BTCPrice, USDTPrice);// 将btc和USDT的价格传入
+	await addLiquidity("1000", "1"); // gov添加流动性，gov获取GLP
+	await approvePlugin() // gov授权plugin，用户授权plugin
+	await increasePosition("1000", 10)// user1买入1000U的BTC，开10倍多仓
+	await updatePrice(BTCPrice.add(1),USDTPrice);// 假设BTC价格上涨了1美元
+	await pricefeed();
+	await ExecuteIncreaseOrder()// 执行开辟多仓
 	process.exit(0);
 }
 

@@ -72,7 +72,7 @@ contract Router is IRouter {
 
     function pluginIncreasePosition(address _account, address _collateralToken, address _indexToken, uint256 _sizeDelta, bool _isLong) external override {
         _validatePlugin(_account);
-        // IVault(vault).increasePosition(_account, _collateralToken, _indexToken, _sizeDelta, _isLong);
+        IVault(vault).increasePosition(_account, _collateralToken, _indexToken, _sizeDelta, _isLong);
     }
 
     function pluginDecreasePosition(address _account, address _collateralToken, address _indexToken, uint256 _collateralDelta, uint256 _sizeDelta, bool _isLong, address _receiver) external override returns (uint256) {

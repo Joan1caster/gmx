@@ -375,6 +375,7 @@ interface OrderBookInterface extends ethers.utils.Interface {
     "ExecuteIncreaseOrder(address,uint256,address,uint256,address,address,uint256,bool,uint256,bool,uint256,uint256)": EventFragment;
     "ExecuteSwapOrder(address,uint256,address[],uint256,uint256,uint256,uint256,bool,bool,uint256)": EventFragment;
     "Initialize(address,address,address,address,uint256,uint256)": EventFragment;
+    "Test(uint256,uint256,uint256,uint256)": EventFragment;
     "UpdateDecreaseOrder(address,uint256,address,uint256,address,uint256,bool,uint256,bool)": EventFragment;
     "UpdateGov(address)": EventFragment;
     "UpdateIncreaseOrder(address,uint256,address,address,bool,uint256,uint256,bool)": EventFragment;
@@ -393,6 +394,7 @@ interface OrderBookInterface extends ethers.utils.Interface {
   getEvent(nameOrSignatureOrTopic: "ExecuteIncreaseOrder"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "ExecuteSwapOrder"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Initialize"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "Test"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "UpdateDecreaseOrder"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "UpdateGov"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "UpdateIncreaseOrder"): EventFragment;
@@ -1839,6 +1841,16 @@ export class OrderBook extends BaseContract {
         minExecutionFee: BigNumber;
         minPurchaseTokenAmountUsd: BigNumber;
       }
+    >;
+
+    Test(
+      arg1?: null,
+      arg2?: null,
+      arg3?: null,
+      arg4?: null
+    ): TypedEventFilter<
+      [BigNumber, BigNumber, BigNumber, BigNumber],
+      { arg1: BigNumber; arg2: BigNumber; arg3: BigNumber; arg4: BigNumber }
     >;
 
     UpdateDecreaseOrder(
