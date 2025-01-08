@@ -5,6 +5,7 @@ package orderbook
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 	"strings"
 
@@ -2168,6 +2169,7 @@ func (it *OrderBookCreateIncreaseOrderIterator) Next() bool {
 				return false
 			}
 			it.Event.Raw = log
+			fmt.Print(it.Event)
 			return true
 
 		default:

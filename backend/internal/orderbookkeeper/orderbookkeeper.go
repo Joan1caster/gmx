@@ -2,16 +2,12 @@ package orderbookkeeper
 
 import (
 	"context"
-	"fmt"
 	"gmxBackend/config"
 	"log"
-	"math/big"
 
 	"github.com/ethereum/go-ethereum"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
@@ -26,54 +22,53 @@ func LoadConfig() {
 	}
 }
 
-func initialize() {
-	LoadConfig()
-
-}
-
-func createIncreasePosition() {
-	client, err := ethclient.Dial(config.AppConfig.Contract.NodeAddress)
+func getClient() *ethclient.Client {
+	client, err := ethclient.Dial(config.AppConfig.Account.NodeAddress)
 	if err != nil {
 		log.Fatalf("Failed to connect to the Ethereum client: %v", err)
 	}
-	privateKey, err := crypto.HexToECDSA(config.AppConfig.Account.PrivateKey)
-	if err != nil {
-		log.Fatalf("Failed to load private key: %v", err)
-	}
+	return client
+}
 
-	auth, err := bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(1)) // ChainID for mainnet is 1
-	if err != nil {
-		log.Fatalf("Failed to create auth: %v", err)
-	}
+func executeOrder() {
+	// client := getClient()
 
-	contractAddress := common.HexToAddress("YOUR_CONTRACT_ADDRESS")
-	exchange, err := bindings.NewSimpleExchange(contractAddress, client)
-	if err != nil {
-		log.Fatalf("Failed to instantiate the contract: %v", err)
-	}
+	// privateKey, err := crypto.HexToECDSA(config.AppConfig.Account.PrivateKey)
+	// if err != nil {
+	// 	log.Fatalf("Failed to load private key: %v", err)
+	// }
 
-	// Example: Buy tokens
-	tx, err := exchange.BuyToken(auth)
-	if err != nil {
-		log.Fatalf("Failed to buy tokens: %v", err)
-	}
+	// auth, err := bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(1)) // ChainID for mainnet is 1
+	// if err != nil {
+	// 	log.Fatalf("Failed to create auth: %v", err)
+	// }
 
-	fmt.Printf("Transaction hash: %s\n", tx.Hash().Hex())
+	// contractAddress := common.HexToAddress(config.AppConfig.Contract.OrderBook)
 
-	// Example: Get contract balance
-	balance, err := exchange.GetBalance(nil)
-	if err != nil {
-		log.Fatalf("Failed to get balance: %v", err)
-	}
+	// exchange, err := bindings.NewSimpleExchange(contractAddress, client)
+	// if err != nil {
+	// 	log.Fatalf("Failed to instantiate the contract: %v", err)
+	// }
 
-	fmt.Printf("Contract balance: %s\n", balance.String())
+	// // Example: Buy tokens
+	// tx, err := exchange.BuyToken(auth)
+	// if err != nil {
+	// 	log.Fatalf("Failed to buy tokens: %v", err)
+	// }
+
+	// fmt.Printf("Transaction hash: %s\n", tx.Hash().Hex())
+
+	// // Example: Get contract balance
+	// balance, err := exchange.GetBalance(nil)
+	// if err != nil {
+	// 	log.Fatalf("Failed to get balance: %v", err)
+	// }
+
+	// fmt.Printf("Contract balance: %s\n", balance.String())
 }
 
 func SubscriptionEvent(contractAddress common.Address) {
-	client, err := ethclient.Dial(config.AppConfig.Contract.OrderBook)
-	if err != nil {
-		log.Fatalf("Failed to connect to the Ethereum client: %v", err)
-	}
+	client := getClient()
 	query := ethereum.FilterQuery{
 		Addresses: []common.Address{contractAddress},
 	}
