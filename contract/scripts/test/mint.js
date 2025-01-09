@@ -24,7 +24,6 @@ const _GLPManager = utils.getYamlValue("GlpManager")
 const BTCPrice = ethers.BigNumber.from(96000);
 const USDTPrice = ethers.BigNumber.from(1);
 const USDGDecimals = 18;
-let orderIndex = 0
 
 async function approve(allowanceNum) {
 	const amount = ethers.BigNumber.from(allowanceNum);
@@ -129,22 +128,28 @@ async function approvePlugin() {
 async function increasePosition(amountIn, time) {
 	const usdt = await contractAt("USDT", USDTaddress)
 	const usdtDecimals = await usdt.decimals()	
-	const amount = ethers.utils.parseUnits(amountIn, usdtDecimals)
-	const _minOut = amount.div(BTCPrice).mul(95).div(100);
-	const _sizeDelta = amount.mul(time)
-	const ExecutionFee = ethers.BigNumber.from("100000000000000000")
+	const btc = await contractAt("BTC", BTCaddress)
+	const btcDecimals = await btc.decimals()	
+	const amount = ethers.BigNumber.from(amountIn)
+	const _amountIn = amount.mul(ethers.BigNumber.from(10).pow(usdtDecimals))
+	const _minOut = amount.div(BTCPrice).mul(10).pow(btcDecimals).mul(95).div(100);
+	const _sizeDelta = amount.mul(time).mul(ethers.BigNumber.from(10).pow(30))
+	const ExecutionFee = ethers.BigNumber.from("10000000000000000")
 	const signer = new ethers.Wallet(user1key).connect(provider) 
 	const orderbook = await contractAt("OrderBook", OrderBookaddress, signer)
-	const arg = [[USDTaddress, BTCaddress], amount, BTCaddress, _minOut, _sizeDelta, USDTaddress, true, BTCPrice-1, true, ExecutionFee, false, {value:ExecutionFee}]
+	const arg = [[USDTaddress, BTCaddress], _amountIn, BTCaddress, _minOut, _sizeDelta, BTCaddress, true, BTCPrice-1, true, ExecutionFee, false, {value:ExecutionFee}]
 	const tx = await callWithRetries(orderbook.createIncreaseOrder.bind(orderbook), arg)
 	console.log(`create increase order succeed.`)
-
 }
 
 async function ExecuteIncreaseOrder() {
 	const orderbook = await contractAt("OrderBook", OrderBookaddress)
-	await callWithRetries(orderbook.executeIncreaseOrder.bind(orderbook), [TestUser1Address, 0, GOVAddress])
-	console.log(`executeIncreaseOrder succeed`)
+	const vault = await contractAt("OrderBook", Vaultaddress)
+	let orderIndex = await orderbook.increaseOrdersIndex(TestUser1Address)
+	orderIndex = orderIndex.add(-1)
+	const tx = await callWithRetries(orderbook.executeIncreaseOrder.bind(orderbook), [TestUser1Address, orderIndex, GOVAddress])
+	const receipt = await tx.wait()
+	console.log(`Execute Increase Order succeed.`)
 }
 
 async function DecreasePosition(_sizeDelta, _collateralDelta) {
@@ -162,17 +167,37 @@ async function DecreasePosition(_sizeDelta, _collateralDelta) {
 	console.log("create decrease order succeed")
 }
 
+async function getLatestEvents(contract) {
+    const latestBlock = await provider.getBlockNumber();
+    
+    const filter = contract.filters.Test();
+    
+    const events = await contract.queryFilter(filter, latestBlock, latestBlock);
+	console.log(`latestBlock:${latestBlock}, events num: ${events.length}`)
+    events.forEach(event => {
+		const bignum = new BigNumber(event.args.arg.toString())
+        console.log('Event Args:', {
+            arg: bignum.toExponential(),
+            name: event.args.name
+        });
+    });
+}
+
 async function main() {
+	// 提供流动性、余额、授权等，只执行一次即可
     await mint("100000"); // 给anvil的第1、2、3个用户铸造btc、usdt
     await approve("10000");// 将钱授权给gmx的router(用作杠杆交易)/glpmanager(用作质押)
     await updatePrice(BTCPrice, USDTPrice);// 将btc和USDT的价格传入
 	await addLiquidity("1000", "1"); // gov添加流动性，gov获取GLP
 	await approvePlugin() // gov授权plugin，用户授权plugin
+
 	await increasePosition("1000", 10)// user1买入1000U的BTC，开10倍多仓
 	await updatePrice(BTCPrice.add(1),USDTPrice);// 假设BTC价格上涨了1美元
-	await pricefeed(); // 查看上涨后的价格
 	await ExecuteIncreaseOrder()// 执行开辟多仓
+	// await DecreasePosition("5000", "500") // 退出一半借贷规模，以及一半押金
 	process.exit(0);
 }
 
 main()
+
+

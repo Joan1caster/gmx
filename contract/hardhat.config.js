@@ -71,9 +71,6 @@ task("distributeFees", "Distribute fees")
  * @type import('hardhat/config').HardhatUserConfig
  */
 module.exports = {
-  libraries: {
-    "contracts/core/PositionUtils.sol:PositionUtils": "已部署的PositionUtils地址"
-  },
   networks: {
     anvil: {
       url: ANVIL_URL,

@@ -458,20 +458,16 @@ contract Vault is ReentrancyGuard, IVault {
 
         uint256 tokenAmount = _transferIn(_token);
         _validate(tokenAmount > 0, 17);
-        emit Test(tokenAmount, "_transferIn tokenAmount");
         updateCumulativeFundingRate(_token, _token);
 
         uint256 price = getMinPrice(_token);// 精度为30，收取利差
-        emit Test(price, "price");
         uint256 usdgAmount = tokenAmount.mul(price).div(PRICE_PRECISION);//精度为token的精度
         usdgAmount = adjustForDecimals(usdgAmount, _token, usdg);// 换算成usdg的精度
         _validate(usdgAmount > 0, 18);
-        emit Test(usdgAmount, "usdgAmount");
         uint256 feeBasisPoints = vaultUtils.getBuyUsdgFeeBasisPoints(_token, usdgAmount);
         uint256 amountAfterFees = _collectSwapFees(_token, tokenAmount, feeBasisPoints);
         uint256 mintAmount = amountAfterFees.mul(price).div(PRICE_PRECISION);//精度为token的精度
         mintAmount = adjustForDecimals(mintAmount, _token, usdg);// 换算成usdg的精度
-        emit Test(mintAmount, "mintAmount");
         _increaseUsdgAmount(_token, mintAmount);
         _increasePoolAmount(_token, amountAfterFees);
 
@@ -587,20 +583,26 @@ contract Vault is ReentrancyGuard, IVault {
         uint256 fee = _collectMarginFees(_account, _collateralToken, _indexToken, _isLong, _sizeDelta, position.size, position.entryFundingRate);
         uint256 collateralDelta = _transferIn(_collateralToken); // 抵押代币获取数额
         uint256 collateralDeltaUsd = tokenToUsdMin(_collateralToken, collateralDelta); // 换成USD数量
-
-        position.collateral = position.collateral.add(collateralDeltaUsd);// 更新抵押代币
+        emit Test(collateralDeltaUsd, "collateralDeltaUsd");
+        emit Test(fee, "fee");
+        emit Test(position.collateral, "position.collateral");
+        emit Test(_sizeDelta, "_sizeDelta");
+        position.collateral = position.collateral.add(collateralDeltaUsd);// 更新抵押代币数量，单位为U
         _validate(position.collateral >= fee, 29);
 
         position.collateral = position.collateral.sub(fee);// 扣除手续费
         position.entryFundingRate = getEntryFundingRate(_collateralToken, _indexToken, _isLong);// 获取费率
-        position.size = position.size.add(_sizeDelta);// 添加借贷规模
+        position.size = position.size.add(_sizeDelta);// 添加借贷规模，单位为U
         position.lastIncreasedTime = block.timestamp;// 更新时间
-
+        
+        emit Test(price, "price");
+        emit Test(collateralDelta, "collateralDelta");
+        emit Test(collateralDeltaUsd, "collateralDeltaUsd");
         _validate(position.size > 0, 30);
         _validatePosition(position.size, position.collateral);
         validateLiquidation(_account, _collateralToken, _indexToken, _isLong, true);
 
-        // reserve tokens to pay profits on the position  预留新增的借贷规模那么多的token，能支撑token价格翻倍
+        // 预留新增的借贷规模那么多的token，能支撑token价格翻倍
         uint256 reserveDelta = usdToTokenMax(_collateralToken, _sizeDelta);
         position.reserveAmount = position.reserveAmount.add(reserveDelta);
         _increaseReservedAmount(_collateralToken, reserveDelta);
@@ -1100,13 +1102,15 @@ contract Vault is ReentrancyGuard, IVault {
 
     function _collectMarginFees(address _account, address _collateralToken, address _indexToken, bool _isLong, uint256 _sizeDelta, uint256 _size, uint256 _entryFundingRate) private returns (uint256) {
         uint256 feeUsd = getPositionFee(_account, _collateralToken, _indexToken, _isLong, _sizeDelta);
-
+        
         uint256 fundingFee = getFundingFee(_account, _collateralToken, _indexToken, _isLong, _size, _entryFundingRate);
         feeUsd = feeUsd.add(fundingFee);
 
         uint256 feeTokens = usdToTokenMin(_collateralToken, feeUsd);
         feeReserves[_collateralToken] = feeReserves[_collateralToken].add(feeTokens);
-
+        emit Test(feeUsd, "feeUsd");
+        emit Test(fundingFee, "fundingFee");
+        emit Test(feeTokens, "feeTokens");
         emit CollectMarginFees(_collateralToken, feeUsd, feeTokens);
         return feeUsd;
     }

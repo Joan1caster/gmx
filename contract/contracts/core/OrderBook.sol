@@ -215,12 +215,7 @@ contract OrderBook is ReentrancyGuard, IOrderBook {
         uint256 executionFee
     );
 
-    event Test(
-        uint256 arg1,
-        uint256 arg2,
-        uint256 arg3,
-        uint256 arg4
-    );
+    event Test(uint256 arg, string name);
 
     event Initialize(
         address router,
@@ -595,15 +590,15 @@ contract OrderBook is ReentrancyGuard, IOrderBook {
 
     function createIncreaseOrder(
         address[] memory _path, // [稳定币, 标的币]
-        uint256 _amountIn, // 抵押金额
-        address _indexToken,// 标的币
-        uint256 _minOut, // 换算以后的标的币量
-        uint256 _sizeDelta,// 借贷规模
+        uint256 _amountIn, // 抵押金额,_path[0]的精度和单位
+        address _indexToken,// 标的币，一般为_path[-1]的精度和单位
+        uint256 _minOut, // 换算以后的标的币量，一般为_path[-1]的精度和单位
+        uint256 _sizeDelta,// 借贷规模，单位为美元，精度默认为30
         address _collateralToken,// 抵押币
         bool _isLong, // true为做多
-        uint256 _triggerPrice, // 目标价格
+        uint256 _triggerPrice, // 目标价格，单位为美元，精度默认为30
         bool _triggerAboveThreshold, // 平仓线触发机制，true为做多
-        uint256 _executionFee, // 执行费用
+        uint256 _executionFee, // 执行费用，单位和精度都是ETH的
         bool _shouldWrap // 是否用ETH支付押金
     ) external payable nonReentrant {
         // always need this call because of mandatory executionFee user has to transfer in ETH
@@ -748,7 +743,7 @@ contract OrderBook is ReentrancyGuard, IOrderBook {
             order.isLong,
             true
         );
-
+        emit Test(0, "test event");
         delete increaseOrders[_address][_orderIndex];// 删除挂单记录
 
         IERC20(order.purchaseToken).safeTransfer(vault, order.purchaseTokenAmount);//把钱从orderbook转给vault
@@ -761,10 +756,10 @@ contract OrderBook is ReentrancyGuard, IOrderBook {
             uint256 amountOut = _swap(path, 0, address(this));
             IERC20(order.collateralToken).safeTransfer(vault, amountOut);
         }
-        // 执行vault
+        // // 执行vault
         IRouter(router).pluginIncreasePosition(order.account, order.collateralToken, order.indexToken, order.sizeDelta, order.isLong);
 
-        // 支付fee
+        // // 支付fee
         _transferOutETH(order.executionFee, _feeReceiver);
 
         emit ExecuteIncreaseOrder(

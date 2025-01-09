@@ -375,7 +375,7 @@ interface OrderBookInterface extends ethers.utils.Interface {
     "ExecuteIncreaseOrder(address,uint256,address,uint256,address,address,uint256,bool,uint256,bool,uint256,uint256)": EventFragment;
     "ExecuteSwapOrder(address,uint256,address[],uint256,uint256,uint256,uint256,bool,bool,uint256)": EventFragment;
     "Initialize(address,address,address,address,uint256,uint256)": EventFragment;
-    "Test(uint256,uint256,uint256,uint256)": EventFragment;
+    "Test(uint256,string)": EventFragment;
     "UpdateDecreaseOrder(address,uint256,address,uint256,address,uint256,bool,uint256,bool)": EventFragment;
     "UpdateGov(address)": EventFragment;
     "UpdateIncreaseOrder(address,uint256,address,address,bool,uint256,uint256,bool)": EventFragment;
@@ -1844,14 +1844,9 @@ export class OrderBook extends BaseContract {
     >;
 
     Test(
-      arg1?: null,
-      arg2?: null,
-      arg3?: null,
-      arg4?: null
-    ): TypedEventFilter<
-      [BigNumber, BigNumber, BigNumber, BigNumber],
-      { arg1: BigNumber; arg2: BigNumber; arg3: BigNumber; arg4: BigNumber }
-    >;
+      arg?: null,
+      name?: null
+    ): TypedEventFilter<[BigNumber, string], { arg: BigNumber; name: string }>;
 
     UpdateDecreaseOrder(
       account?: string | null,
