@@ -1,7 +1,4 @@
 # GMX Contracts
-Contracts for GMX.
-
-Docs at https://gmxio.gitbook.io/gmx/contracts.
 
 ## Install Dependencies
 If npx is not installed yet:
@@ -9,6 +6,11 @@ If npx is not installed yet:
 
 Install packages:
 `npm i`
+## network
+    need install foundry
+    ```bash
+    anvil --code-size-limit 100000000
+    ```
 
 ## deploy 
     ```bash
