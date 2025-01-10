@@ -1,0 +1,5 @@
+# 忽略 contract/node_modules 目录
+contract/node_modules/
+
+# 保留 env.json 文件
+!contract/env.json
