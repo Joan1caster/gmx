@@ -583,10 +583,6 @@ contract Vault is ReentrancyGuard, IVault {
         uint256 fee = _collectMarginFees(_account, _collateralToken, _indexToken, _isLong, _sizeDelta, position.size, position.entryFundingRate);
         uint256 collateralDelta = _transferIn(_collateralToken); // 抵押代币获取数额
         uint256 collateralDeltaUsd = tokenToUsdMin(_collateralToken, collateralDelta); // 换成USD数量
-        emit Test(collateralDeltaUsd, "collateralDeltaUsd");
-        emit Test(fee, "fee");
-        emit Test(position.collateral, "position.collateral");
-        emit Test(_sizeDelta, "_sizeDelta");
         position.collateral = position.collateral.add(collateralDeltaUsd);// 更新抵押代币数量，单位为U
         _validate(position.collateral >= fee, 29);
 
@@ -594,10 +590,7 @@ contract Vault is ReentrancyGuard, IVault {
         position.entryFundingRate = getEntryFundingRate(_collateralToken, _indexToken, _isLong);// 获取费率
         position.size = position.size.add(_sizeDelta);// 添加借贷规模，单位为U
         position.lastIncreasedTime = block.timestamp;// 更新时间
-        
-        emit Test(price, "price");
-        emit Test(collateralDelta, "collateralDelta");
-        emit Test(collateralDeltaUsd, "collateralDeltaUsd");
+
         _validate(position.size > 0, 30);
         _validatePosition(position.size, position.collateral);
         validateLiquidation(_account, _collateralToken, _indexToken, _isLong, true);
@@ -645,23 +638,23 @@ contract Vault is ReentrancyGuard, IVault {
         _validate(position.collateral >= _collateralDelta, 33);
 
         uint256 collateral = position.collateral;
-        // scrop variables to avoid stack too deep errors
+        // 按借贷规模等比退出流动性
         {
         uint256 reserveDelta = position.reserveAmount.mul(_sizeDelta).div(position.size);
         position.reserveAmount = position.reserveAmount.sub(reserveDelta);
         _decreaseReservedAmount(_collateralToken, reserveDelta);
         }
-
+        // 计算提现的钱=已实现盈利-fee+提出的手续费
         (uint256 usdOut, uint256 usdOutAfterFee) = _reduceCollateral(_account, _collateralToken, _indexToken, _collateralDelta, _sizeDelta, _isLong);
 
-        if (position.size != _sizeDelta) {
+        if (position.size != _sizeDelta) {// 如果部分清仓
             position.entryFundingRate = getEntryFundingRate(_collateralToken, _indexToken, _isLong);
             position.size = position.size.sub(_sizeDelta);
 
             _validatePosition(position.size, position.collateral);
             validateLiquidation(_account, _collateralToken, _indexToken, _isLong, true);
 
-            if (_isLong) {
+            if (_isLong) {// 如果做多，减少退出借贷规模的保证金，
                 _increaseGuaranteedUsd(_collateralToken, collateral.sub(position.collateral));
                 _decreaseGuaranteedUsd(_collateralToken, _sizeDelta);
             }
@@ -936,11 +929,12 @@ contract Vault is ReentrancyGuard, IVault {
 
     function getDelta(address _indexToken, uint256 _size, uint256 _averagePrice, bool _isLong, uint256 _lastIncreasedTime) public override view returns (bool, uint256) {
         _validate(_averagePrice > 0, 38);
-        uint256 price = _isLong ? getMinPrice(_indexToken) : getMaxPrice(_indexToken);
-        uint256 priceDelta = _averagePrice > price ? _averagePrice.sub(price) : price.sub(_averagePrice);
-        uint256 delta = _size.mul(priceDelta).div(_averagePrice);
+        uint256 price = _isLong ? getMinPrice(_indexToken) : getMaxPrice(_indexToken);//获取价格
+        uint256 priceDelta = _averagePrice > price ? _averagePrice.sub(price) : price.sub(_averagePrice);//获取差价
+        // 计算盈亏
+        uint256 delta = _size.mul(priceDelta).div(_averagePrice);//size/averagePrice为数量，乘priceDelta为盈亏
 
-        bool hasProfit;
+        bool hasProfit;// 记录是否盈利
 
         if (_isLong) {
             hasProfit = price > _averagePrice;
@@ -948,8 +942,7 @@ contract Vault is ReentrancyGuard, IVault {
             hasProfit = _averagePrice > price;
         }
 
-        // if the minProfitTime has passed then there will be no min profit threshold
-        // the min profit threshold helps to prevent front-running issues
+        // 如果盈利小于最小盈利基点则把盈利置零
         uint256 minBps = block.timestamp > _lastIncreasedTime.add(minProfitTime) ? 0 : minProfitBasisPoints[_indexToken];
         if (hasProfit && delta.mul(BASIS_POINTS_DIVISOR) <= _size.mul(minBps)) {
             delta = 0;
@@ -998,18 +991,19 @@ contract Vault is ReentrancyGuard, IVault {
         bool hasProfit;
         uint256 adjustedDelta;
 
-        // scope variables to avoid stack too deep errors
+        // 计算盈亏情况
         {
         (bool _hasProfit, uint256 delta) = getDelta(_indexToken, position.size, position.averagePrice, _isLong, position.lastIncreasedTime);
         hasProfit = _hasProfit;
-        // get the proportional change in pnl
+        // 计算变现的盈利
         adjustedDelta = _sizeDelta.mul(delta).div(position.size);
         }
 
         uint256 usdOut;
         // transfer profits out
-        if (hasProfit && adjustedDelta > 0) {
+        if (hasProfit && adjustedDelta > 0) {//如果盈利
             usdOut = adjustedDelta;
+            // 更新已实现利润
             position.realisedPnl = position.realisedPnl + int256(adjustedDelta);
 
             // pay out realised profits from the pool amount for short positions
@@ -1019,41 +1013,36 @@ contract Vault is ReentrancyGuard, IVault {
             }
         }
 
-        if (!hasProfit && adjustedDelta > 0) {
+        if (!hasProfit && adjustedDelta > 0) {// 如果亏损：扣押金、增加池子里的钱，减少为实现盈利
+            // 押金减去亏损
             position.collateral = position.collateral.sub(adjustedDelta);
 
-            // transfer realised losses to the pool for short positions
-            // realised losses for long positions are not transferred here as
-            // _increasePoolAmount was already called in increasePosition for longs
-            if (!_isLong) {
+            if (!_isLong) {// 如果是做空，增加池子里的钱，量等于用户卡亏的钱
                 uint256 tokenAmount = usdToTokenMin(_collateralToken, adjustedDelta);
-                _increasePoolAmount(_collateralToken, tokenAmount);
+                _increasePoolAmount(_collateralToken, tokenAmount);// 
             }
-
+            // 
             position.realisedPnl = position.realisedPnl - int256(adjustedDelta);
         }
 
-        // reduce the position's collateral by _collateralDelta
-        // transfer _collateralDelta out
-        if (_collateralDelta > 0) {
-            usdOut = usdOut.add(_collateralDelta);
-            position.collateral = position.collateral.sub(_collateralDelta);
+        if (_collateralDelta > 0) {// 如果用户要提走押金
+            usdOut = usdOut.add(_collateralDelta); //增加变现的金额
+            position.collateral = position.collateral.sub(_collateralDelta);//头寸减小押金
         }
 
-        // if the position will be closed, then transfer the remaining collateral out
+        // 如果返还全部借贷规模
         if (position.size == _sizeDelta) {
-            usdOut = usdOut.add(position.collateral);
+            usdOut = usdOut.add(position.collateral);// 返还全部剩余押金
             position.collateral = 0;
         }
 
-        // if the usdOut is more than the fee then deduct the fee from the usdOut directly
-        // else deduct the fee from the position's collateral
+        // 调整fee，从提现里扣货从押金里扣
         uint256 usdOutAfterFee = usdOut;
         if (usdOut > fee) {
             usdOutAfterFee = usdOut.sub(fee);
         } else {
             position.collateral = position.collateral.sub(fee);
-            if (_isLong) {
+            if (_isLong) {// 如果是做多，从池子里减少fee
                 uint256 feeTokens = usdToTokenMin(_collateralToken, fee);
                 _decreasePoolAmount(_collateralToken, feeTokens);
             }

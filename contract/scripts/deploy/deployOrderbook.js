@@ -19,6 +19,7 @@ async function main() {
   writeTmpAddresses({
     orderBook: orderBook.address
   })
+  process.exit(0);
 }
 
 main()

@@ -68,6 +68,7 @@ async function main() {
 
   const vaultUtils = await deployContract("VaultUtils", [vault.address])
   await sendTxn(vault.setVaultUtils(vaultUtils.address), "vault.setVaultUtils")
+  process.exit(0);
 }
 
 main()
