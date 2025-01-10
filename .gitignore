@@ -1,5 +1,7 @@
 # 忽略 contract/node_modules 目录
 contract/node_modules/
+contract/cache/
+contract/artifacts/
 
 # 保留 env.json 文件
 !contract/env.json
