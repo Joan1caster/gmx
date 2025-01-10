@@ -28,6 +28,8 @@ contract Router is IRouter {
 
     event Swap(address account, address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut);
 
+    event Test(uint256 arg, string name);
+
     modifier onlyGov() {
         require(msg.sender == gov, "Router: forbidden");
         _;
@@ -163,6 +165,7 @@ contract Router is IRouter {
     }
 
     function _decreasePosition(address _collateralToken, address _indexToken, uint256 _collateralDelta, uint256 _sizeDelta, bool _isLong, address _receiver, uint256 _price) private returns (uint256) {
+        uint256 minPrice = IVault(vault).getMinPrice(_indexToken);
         if (_isLong) {
             require(IVault(vault).getMinPrice(_indexToken) >= _price, "Router: mark price lower than limit");
         } else {

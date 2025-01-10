@@ -250,9 +250,11 @@ interface RouterInterface extends ethers.utils.Interface {
 
   events: {
     "Swap(address,address,address,uint256,uint256)": EventFragment;
+    "Test(uint256,string)": EventFragment;
   };
 
   getEvent(nameOrSignatureOrTopic: "Swap"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "Test"): EventFragment;
 }
 
 export class Router extends BaseContract {
@@ -799,6 +801,11 @@ export class Router extends BaseContract {
         amountOut: BigNumber;
       }
     >;
+
+    Test(
+      arg?: null,
+      name?: null
+    ): TypedEventFilter<[BigNumber, string], { arg: BigNumber; name: string }>;
   };
 
   estimateGas: {

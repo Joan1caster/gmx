@@ -197,12 +197,12 @@ async function marketPriceDecrease(sizeDelta, _collateralDelta) {
 	const router = await contractAt("Router", Routeraddress, signer)
 	const _sizeDelta = ethers.utils.parseUnits(sizeDelta, 30)
 	const collateralDelta = ethers.utils.parseUnits(_collateralDelta, usdtDecimals)
-	const _BTCPrice = BTCPrice.mul(ethers.BigNumber.from(10).pow(30))
-	// 低于目标价格触发
-	arg = [BTCaddress, BTCaddress, collateralDelta, _sizeDelta, true, TestUser1Address, _BTCPrice.add(20)]
+	const _BTCPrice = BTCPrice.sub(ethers.BigNumber.from(1)).mul(ethers.BigNumber.from(10).pow(30))
+	const _isLong = true // 为true表示实际价格高于输入价格时触发
+	arg = [BTCaddress, BTCaddress, collateralDelta, _sizeDelta, _isLong, TestUser1Address, _BTCPrice]
 	await callWithRetries(router.decreasePosition.bind(router), arg)
 	console.log("execulte market Price Decrease succeed.")
-	
+	await getLatestEvents(router)
 }
 
 async function getLatestEvents(contract) {
