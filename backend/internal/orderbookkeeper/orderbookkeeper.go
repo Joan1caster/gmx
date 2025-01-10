@@ -2,12 +2,18 @@ package orderbookkeeper
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"fmt"
 	"gmxBackend/config"
+	"gmxBackend/contracts/core/orderbook"
 	"log"
+	"math/big"
 
 	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
@@ -31,40 +37,49 @@ func getClient() *ethclient.Client {
 }
 
 func executeOrder() {
-	// client := getClient()
+	client := getClient()
 
-	// privateKey, err := crypto.HexToECDSA(config.AppConfig.Account.PrivateKey)
-	// if err != nil {
-	// 	log.Fatalf("Failed to load private key: %v", err)
-	// }
-
-	// auth, err := bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(1)) // ChainID for mainnet is 1
-	// if err != nil {
-	// 	log.Fatalf("Failed to create auth: %v", err)
-	// }
-
-	// contractAddress := common.HexToAddress(config.AppConfig.Contract.OrderBook)
-
-	// exchange, err := bindings.NewSimpleExchange(contractAddress, client)
-	// if err != nil {
-	// 	log.Fatalf("Failed to instantiate the contract: %v", err)
-	// }
-
-	// // Example: Buy tokens
-	// tx, err := exchange.BuyToken(auth)
-	// if err != nil {
-	// 	log.Fatalf("Failed to buy tokens: %v", err)
-	// }
-
-	// fmt.Printf("Transaction hash: %s\n", tx.Hash().Hex())
-
-	// // Example: Get contract balance
-	// balance, err := exchange.GetBalance(nil)
-	// if err != nil {
-	// 	log.Fatalf("Failed to get balance: %v", err)
-	// }
-
-	// fmt.Printf("Contract balance: %s\n", balance.String())
+	privateKey, err := crypto.HexToECDSA("YOUR_PRIVATE_KEY")
+	if err != nil {
+		log.Fatal(err)
+	}
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		log.Fatal("error casting public key to ECDSA")
+	}
+	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
+	nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
+	if err != nil {
+		log.Fatal(err)
+	}
+	gasPrice, err := client.SuggestGasPrice(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	}
+	chainID, err := client.NetworkID(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	}
+	auth, err := bind.NewKeyedTransactorWithChainID(privateKey, chainID)
+	if err != nil {
+		log.Fatal(err)
+	}
+	auth.Nonce = big.NewInt(int64(nonce))
+	auth.Value = big.NewInt(0)      // in wei
+	auth.GasLimit = uint64(3000000) // in units
+	auth.GasPrice = gasPrice
+	orderbookins, err := orderbook.NewOrderBook(common.HexToAddress(config.AppConfig.Contract.OrderBook), client)
+	if err != nil {
+		log.Fatal(err)
+	}
+	orderbooksessioin := orderbook.OrderBookSession{
+		Contract:     orderbookins,
+		CallOpts:     bind.CallOpts{},
+		TransactOpts: *auth,
+	}
+	fmt.Println(orderbooksessioin)
+	// orderbooksessioin.ExecuteIncreaseOrder(useraddress, order, govaddress)
 }
 
 func SubscriptionEvent(contractAddress common.Address) {
@@ -72,6 +87,10 @@ func SubscriptionEvent(contractAddress common.Address) {
 	query := ethereum.FilterQuery{
 		Addresses: []common.Address{contractAddress},
 	}
+
+	orderbookfilter, _ := orderbook.NewOrderBookFilterer(common.HexToAddress("0x84eA74d481Ee0A5332c457a4d796187F6Ba67fEB"), client)
+
+	fmt.Println(*orderbookfilter)
 
 	logs := make(chan types.Log)
 	sub, err := client.SubscribeFilterLogs(context.Background(), query, logs)
@@ -84,8 +103,16 @@ func SubscriptionEvent(contractAddress common.Address) {
 			log.Fatalf("Subscription error: %v", err)
 		case vLog := <-logs:
 			// Handle the log
-			log.Printf("Log: %v", vLog)
+			log.Printf("Log: %+v", vLog)
+			fmt.Println(vLog.Topics[0])
+			event, _ := orderbookfilter.ParseCreateIncreaseOrder(vLog)
+			log.Printf("LogEvent: %+v", event)
 		}
 	}
+}
 
+func GetIncreaseOrderT() {
+	client := getClient()
+	caller, _ := orderbook.NewOrderBookCaller(common.HexToAddress(config.AppConfig.Contract.OrderBook), client)
+	fmt.Println(caller.GetIncreaseOrder(&bind.CallOpts{}, common.HexToAddress("0x0"), big.NewInt(1)))
 }
