@@ -151,6 +151,8 @@ async function ExecuteIncreaseOrder() {
 }
 
 async function DecreasePosition(sizeDelta, _collateralDelta) {
+	const btc = await contractAt("BTC", BTCaddress)
+	const btcDecimals = await btc.decimals()
 	const usdt = await contractAt("USDT", USDTaddress)
 	const usdtDecimals = await usdt.decimals()	
 	const signer = new ethers.Wallet(user1key).connect(provider) 
@@ -174,8 +176,6 @@ async function ExecuteDecreaseOrder() {
 }
 
 async function marketPriceIncrease(amountIn, time) {
-	const btc = await contractAt("BTC", BTCaddress)
-	const btcDecimals = await btc.decimals()
 	const signer = new ethers.Wallet(user1key).connect(provider) 
 	const router = await contractAt("Router", Routeraddress, signer)
 	const usdt = await contractAt("USDT", USDTaddress)
@@ -184,29 +184,11 @@ async function marketPriceIncrease(amountIn, time) {
 	const amount = ethers.BigNumber.from(amountIn)
 	const _minOut = amount.div(BTCPrice).mul(10).pow(btcDecimals).mul(95).div(100)
 	const _sizeDelta = amount.mul(time).mul(ethers.BigNumber.from(10).pow(30))
-	const _BTCPrice = BTCPrice.mul(ethers.BigNumber.from(10).pow(30))
-	arg = [[USDTaddress, BTCaddress], BTCaddress, _amountIn, _minOut, _sizeDelta, true, _BTCPrice.add(1)]
-	await callWithRetries(router.increasePosition.bind(router), arg)
-	console.log("execulte market Price Increase succeed.")
-}
-
-async function marketPriceDecrease(sizeDelta, _collateralDelta) {
-	const usdt = await contractAt("USDT", USDTaddress)
-	const usdtDecimals = await usdt.decimals()	
-	const signer = new ethers.Wallet(user1key).connect(provider) 
-	const router = await contractAt("Router", Routeraddress, signer)
-	const _sizeDelta = ethers.utils.parseUnits(sizeDelta, 30)
-	const collateralDelta = ethers.utils.parseUnits(_collateralDelta, usdtDecimals)
-	const _BTCPrice = BTCPrice.mul(ethers.BigNumber.from(10).pow(30))
-	// 低于目标价格触发
-	arg = [BTCaddress, BTCaddress, collateralDelta, _sizeDelta, true, TestUser1Address, _BTCPrice.sub(20)]
-	await callWithRetries(router.decreasePosition.bind(router), arg)
-	console.log("execulte market Price Decrease succeed.")
-	
+	arg = [[USDTaddress, BTCaddress], BTCaddress, _amountIn, _minOut, _sizeDelta, true, BTCPrice, {value:ExecutionFee}]
+	await callWithRetries(router.increasePosition.bind(router), )
 }
 
 async function getLatestEvents(contract) {
-	// 用于输出制定合约的事件，调试用
     const latestBlock = await provider.getBlockNumber();
     
     const filter = contract.filters.Test();
@@ -230,22 +212,12 @@ async function main() {
 	await addLiquidity("1000", "1"); // gov添加流动性，gov获取GLP
 	await approvePlugin() // gov授权plugin，用户授权plugin
 
-	// // 限价单：1k USDT开10倍BTC的多仓
-	// await increasePosition("1000", 10)// user1买入1000U的BTC，开10倍多仓
-	// await updatePrice(BTCPrice.add(1),USDTPrice);// 假设BTC价格上涨了1美元
-	// await ExecuteIncreaseOrder()// 执行开辟多仓
-
-	// // 限价单：将上一步开的持仓量减小一半，押金退500USD，借贷规模减小5k USD
-	// // 如果要完全平仓，将借贷规模设定成全部，押金写0即可，自动清算
-	// await DecreasePosition("5000", "500") // 退出5000借贷规模，以及500押金
-	// await updatePrice(BTCPrice.sub(1),USDTPrice);// 假设BTC价格下跌了1美元
-	// await ExecuteDecreaseOrder()// 执行减仓
-
-	// 市价单：1k USDT开10倍BTC的多仓
-	await marketPriceIncrease("1000", 10)
-
-	// 市价单：平仓一半
-	await marketPriceDecrease("5000", "500")
+	await increasePosition("1000", 10)// user1买入1000U的BTC，开10倍多仓
+	await updatePrice(BTCPrice.add(1),USDTPrice);// 假设BTC价格上涨了1美元
+	await ExecuteIncreaseOrder()// 执行开辟多仓
+	await DecreasePosition("5000", "500") // 退出5000借贷规模，以及500押金
+	await updatePrice(BTCPrice.sub(1),USDTPrice);// 假设BTC价格下跌了1美元
+	await ExecuteDecreaseOrder()// 执行减仓
 	process.exit(0);
 }
 
