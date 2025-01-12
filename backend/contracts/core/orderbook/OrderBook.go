@@ -2287,6 +2287,7 @@ func (_OrderBook *OrderBookFilterer) WatchCreateIncreaseOrder(opts *bind.WatchOp
 func (_OrderBook *OrderBookFilterer) ParseCreateIncreaseOrder(log types.Log) (*OrderBookCreateIncreaseOrder, error) {
 	event := new(OrderBookCreateIncreaseOrder)
 	if err := _OrderBook.contract.UnpackLog(event, "CreateIncreaseOrder", log); err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
 	event.Raw = log

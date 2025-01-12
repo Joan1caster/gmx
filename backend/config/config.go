@@ -21,6 +21,7 @@ type Config struct {
 		NFTcontractAddress       string `yaml:"NFTcontractAddress"`
 		NFTMarketcontractAddress string `yaml:"NFTMarketcontractAddress"`
 		ContractApiFile          string `yaml:"contractApiFile"`
+		GOVAddress               string `yaml:"GOVAddress"`
 	} `yaml:"contract"`
 	Account struct {
 		PrivateKey     string `yaml:"privatekey"`
