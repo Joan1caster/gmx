@@ -39,7 +39,7 @@ func getClient() *ethclient.Client {
 func executeOrder(useraddress common.Address, orderIndex *big.Int) {
 	client := getClient()
 
-	privateKey, err := crypto.HexToECDSA("YOUR_PRIVATE_KEY")
+	privateKey, err := crypto.HexToECDSA(config.AppConfig.Account.PrivateKey)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -82,16 +82,19 @@ func executeOrder(useraddress common.Address, orderIndex *big.Int) {
 	orderbooksessioin.ExecuteIncreaseOrder(useraddress, orderIndex, common.HexToAddress(config.AppConfig.Contract.GOVAddress))
 }
 
-func SubscriptionEvent(contractAddress common.Address, priceChan <-chan float64) {
+func SubscriptionEvent(contractAddress common.Address) {
 	client := getClient()
 	query := ethereum.FilterQuery{
 		Addresses: []common.Address{contractAddress},
+		Topics:    [][]common.Hash{{common.HexToHash("0xb27b9afe3043b93788c40cfc3cc73f5d928a2e40f3ba01820b246426de8fa1b9")}},
 	}
 
 	orderbookfilter, _ := orderbook.NewOrderBookFilterer(contractAddress, client)
 
-	fmt.Println(*orderbookfilter)
+	// fmt.Println(*orderbookfilter)
 
+	// testabi, _ := orderbook.OrderBookMetaData.GetAbi()
+	// fmt.Println(testabi.Events)
 	logs := make(chan types.Log)
 	sub, err := client.SubscribeFilterLogs(context.Background(), query, logs)
 	if err != nil {
