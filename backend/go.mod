@@ -11,6 +11,12 @@ require (
 )
 
 require (
+	github.com/jinzhu/inflection v1.0.0 // indirect
+	github.com/jinzhu/now v1.1.5 // indirect
+	golang.org/x/text v0.14.0 // indirect
+)
+
+require (
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/StackExchange/wmi v1.2.1 // indirect
 	github.com/bitly/go-simplejson v0.5.0 // indirect
@@ -39,5 +45,6 @@ require (
 	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa // indirect
 	golang.org/x/sync v0.7.0 // indirect
 	golang.org/x/sys v0.22.0 // indirect
+	gorm.io/gorm v1.25.12
 	rsc.io/tmplfunc v0.0.3 // indirect
 )
