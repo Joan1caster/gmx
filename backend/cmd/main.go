@@ -11,8 +11,8 @@ import (
 )
 
 func main() {
-	apiKey := "B9VBgVdsMjfRbAaXWaYe0BnwT1tEcBmgV0NRSTrsJadA8oPeXTVXpuVkpDWOLvKO"
-	secretKey := "hZzOyAaiLCILYTCdCkA0L9c9KyxzvvIcs3lTsiybGlqwX28JR5hoCqQxrjmC0t0k"
+	apiKey := "25WlhgOkqcVzo5Shq9ZdN81209iJyqubkkKQrYeMBxSiLpyOxR6F3gjASjYCRIS8"
+	secretKey := "qgiLtpia5b8Gi5UlATV5XcqfeKWKq2tqJUqjG46sgj3k6JHSKYiJCX3QszFue4SK"
 
 	client := binance.NewClient(apiKey, secretKey)
 
