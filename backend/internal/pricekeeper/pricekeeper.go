@@ -3,7 +3,6 @@ package pricekeeper
 import (
 	"context"
 	"crypto/ecdsa"
-	"fmt"
 	"gmxBackend/config"
 	"gmxBackend/contracts/oracle/btcpricefeed"
 	"log"
@@ -27,28 +26,34 @@ func UpdatePrice(BTCPrice float64) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	publicKey := privateKey.Public()
 	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
 	if !ok {
 		log.Fatal("error casting public key to ECDSA")
 	}
+
 	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
 	nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	gasPrice, err := client.SuggestGasPrice(context.Background())
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	chainID, err := client.NetworkID(context.Background())
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	auth, err := bind.NewKeyedTransactorWithChainID(privateKey, chainID)
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	auth.Nonce = big.NewInt(int64(nonce))
 	auth.Value = big.NewInt(0)      // in wei
 	auth.GasLimit = uint64(3000000) // in units
@@ -64,7 +69,7 @@ func UpdatePrice(BTCPrice float64) {
 
 	intVal := new(big.Int)
 
-	big, _ := result.Int(intVal)
-	fmt.Println(big)
-	fmt.Println(btcPriceFed.SetLatestAnswer(auth, big))
+	result.Int(intVal)
+
+	btcPriceFed.SetLatestAnswer(auth, intVal)
 }
