@@ -7,5 +7,5 @@ import (
 
 func TestMain(t *testing.T) {
 	config.LoadConfig("../../config/config.yaml")
-	UpdatePrice(67000)
+	UpdatePrice(96002)
 }

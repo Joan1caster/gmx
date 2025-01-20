@@ -62,14 +62,9 @@ func UpdatePrice(BTCPrice float64) {
 	btcPriceFed, _ := btcpricefeed.NewBTCPriceFeed(btcPriceFeddAddress, client)
 
 	floatVal := new(big.Float).SetFloat64(BTCPrice)
-
 	exponent := new(big.Float).SetFloat64(1e18)
-
 	result := new(big.Float).Mul(floatVal, exponent)
-
 	intVal := new(big.Int)
-
 	result.Int(intVal)
-
 	btcPriceFed.SetLatestAnswer(auth, intVal)
 }
