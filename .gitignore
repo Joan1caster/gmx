@@ -2,6 +2,7 @@
 contract/node_modules/
 contract/cache/
 contract/artifacts/
+backend/.env
 
 # 保留 env.json 文件
 !contract/env.json

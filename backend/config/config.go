@@ -1,14 +1,17 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"sync"
 
+	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
 )
 
 var (
+	V          *viper.Viper
 	AppConfig  Config
 	configOnce sync.Once
 )
@@ -47,4 +50,32 @@ func LoadConfig(configPath string) error {
 		}
 	})
 	return err
+}
+
+func Init() {
+	viper.SetConfigFile(".env")
+	err := viper.ReadInConfig()
+	if err != nil {
+		fmt.Printf("Error reading config file: %s\n", err)
+		return
+	}
+
+	V = viper.New()
+	V.SetConfigName("CA.yaml")
+	V.SetConfigType("yaml")
+	V.AddConfigPath("../contract")
+
+	err = V.ReadInConfig()
+	if err != nil {
+		log.Fatalf("读取配置文件失败: %v", err)
+	}
+	V.Set("NodeAddress", "http://127.0.0.1:8554")
+}
+
+func GetString(key string) string {
+	return V.GetString(key)
+}
+
+func GetInt(key string) int {
+	return V.GetInt(key)
 }
