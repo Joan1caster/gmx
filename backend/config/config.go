@@ -22,6 +22,7 @@ type Config struct {
 		NFTMarketcontractAddress string `yaml:"NFTMarketcontractAddress"`
 		ContractApiFile          string `yaml:"contractApiFile"`
 		GOVAddress               string `yaml:"GOVAddress"`
+		BtcPriceFeddAddress      string `yaml:"BTCPriceFeed"`
 	} `yaml:"contract"`
 	Account struct {
 		PrivateKey     string `yaml:"privatekey"`
