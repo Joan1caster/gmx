@@ -3,6 +3,8 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"gmxBackend/internal/pricekeeper"
+	"gmxBackend/utils"
 	"log"
 	"net/http"
 
@@ -52,18 +54,21 @@ func GetPrice(Tokens string, priceChan chan string) {
 	}
 }
 
-// func UpdateBTCPrice(Price float64) {
+func UpdatePriceToChain(priceChain chan string) {
+	BTCPriceConn, err := pricekeeper.BTCPriceFeedConnect()
+	if err != nil {
+		fmt.Println("connect rpc error:", err)
+	}
+	for {
+		select {
+		case price, ok := <-priceChain:
+			if !ok {
+				fmt.Println("channel closed")
+			}
+			priceUint256 := utils.StringToUint256(price, 18)
+			BTCPriceConn.UpdateBTCPrice(priceUint256)
+			fmt.Println("BTC price for now:", price)
 
-// 	PriceFeddAddress := common.HexToAddress(config.GetString("BTCPriceFeed"))
-
-// 	client, err := ethclient.Dial(config.GetString("NodeAddress"))
-// 	if err != nil {
-// 		log.Fatalf("Failed to connect to the Ethereum client: %v", err)
-// 	}
-
-// 	btcPriceFed, err := btcpricefeed.NewBTCPriceFeed(PriceFeddAddress, client)
-
-// 	btcdecimals, err := btcPriceFed.Decimals()
-
-// 	btcPriceFed.SetLatestAnswer(big.NewInt(int64(BTCPrice) * btcdecimals))
-// }
+		}
+	}
+}

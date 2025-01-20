@@ -3,42 +3,19 @@ package main
 import (
 	"fmt"
 	"gmxBackend/config"
-	"gmxBackend/internal/pricekeeper"
 	"gmxBackend/service"
-	"gmxBackend/utils"
 )
 
 func main() {
 	fmt.Println("service running...")
 
-	config.Init()
-	priceFeed := config.GetString("BTCPriceFeed")
-	fmt.Printf("btc pricefeed ca: %s\n", priceFeed)
+	config.Init() // 加载配置文件
 
-	// priceBuffer := models.NewPriceBuffer()
+	priceChain := make(chan string, 10) //储存BTC价格订阅
 
-	// priceRepo := repository.NewPriceRepo()
+	go service.GetPrice("btcusdt", priceChain) // 订阅币安的BTC/USDT价格
 
-	// go priceService.UpdatePrices(newPrice)
-	BTCPriceConn, err := pricekeeper.BTCPriceFeedConnect()
-	if err != nil {
-		fmt.Println("connect rpc error:", err)
-	}
+	go service.UpdatePriceToChain(priceChain) // 将价格更新到链上
 
-	priceChain := make(chan string, 10)
-
-	go service.GetPrice("btcusdt", priceChain)
-
-	for {
-		select {
-		case price, ok := <-priceChain:
-			if !ok {
-				fmt.Println("channel closed")
-			}
-			priceUint256 := utils.StringToUint256(price, 18)
-			BTCPriceConn.UpdateBTCPrice(priceUint256)
-			fmt.Println("price:", price)
-
-		}
-	}
+	select {} // 防止main退出
 }
