@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"gmxBackend/config"
+	"gmxBackend/internal/pricekeeper"
 	"gmxBackend/service"
+	"gmxBackend/utils"
 )
 
 func main() {
@@ -18,6 +20,10 @@ func main() {
 	// priceRepo := repository.NewPriceRepo()
 
 	// go priceService.UpdatePrices(newPrice)
+	BTCPriceConn, err := pricekeeper.BTCPriceFeedConnect()
+	if err != nil {
+		fmt.Println("connect rpc error:", err)
+	}
 
 	priceChain := make(chan string, 10)
 
@@ -29,6 +35,8 @@ func main() {
 			if !ok {
 				fmt.Println("channel closed")
 			}
+			priceUint256 := utils.StringToUint256(price, 18)
+			BTCPriceConn.UpdateBTCPrice(priceUint256)
 			fmt.Println("price:", price)
 
 		}

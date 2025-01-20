@@ -7,13 +7,6 @@ import (
 	"net/http"
 
 	"github.com/gorilla/websocket"
-
-	"gmxBackend/config"
-	"gmxBackend/contracts/oracle/btcpricefeed"
-	"math/big"
-
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethclient"
 )
 
 func GetPrice(Tokens string, priceChan chan string) {
@@ -59,18 +52,18 @@ func GetPrice(Tokens string, priceChan chan string) {
 	}
 }
 
-func UpdateBTCPrice(Price float64) {
+// func UpdateBTCPrice(Price float64) {
 
-	PriceFeddAddress := common.HexToAddress(config.GetString("BTCPriceFeed"))
+// 	PriceFeddAddress := common.HexToAddress(config.GetString("BTCPriceFeed"))
 
-	client, err := ethclient.Dial(config.GetString("NodeAddress"))
-	if err != nil {
-		log.Fatalf("Failed to connect to the Ethereum client: %v", err)
-	}
+// 	client, err := ethclient.Dial(config.GetString("NodeAddress"))
+// 	if err != nil {
+// 		log.Fatalf("Failed to connect to the Ethereum client: %v", err)
+// 	}
 
-	btcPriceFed, err := btcpricefeed.NewBTCPriceFeed(PriceFeddAddress, client)
+// 	btcPriceFed, err := btcpricefeed.NewBTCPriceFeed(PriceFeddAddress, client)
 
-	btcdecimals, err := btcPriceFed.Decimals()
+// 	btcdecimals, err := btcPriceFed.Decimals()
 
-	btcPriceFed.SetLatestAnswer(big.NewInt(int64(BTCPrice) * btcdecimals))
-}
+// 	btcPriceFed.SetLatestAnswer(big.NewInt(int64(BTCPrice) * btcdecimals))
+// }

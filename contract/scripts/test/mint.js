@@ -223,29 +223,30 @@ async function getLatestEvents(contract) {
 }
 
 async function main() {
-	// 提供流动性、余额、授权等，只执行一次即可
-    await mint("100000"); // 给anvil的第1、2、3个用户铸造btc、usdt
-    await approve("10000");// 将钱授权给gmx的router(用作杠杆交易)/glpmanager(用作质押)
-    await updatePrice(BTCPrice, USDTPrice);// 将btc和USDT的价格传入,单位为原token单位，精度为pricefeed精度
-	await addLiquidity("1000", "1"); // gov添加流动性，gov获取GLP
-	await approvePlugin() // gov授权plugin，用户授权plugin
+	// // 提供流动性、余额、授权等，只执行一次即可
+    // await mint("100000"); // 给anvil的第1、2、3个用户铸造btc、usdt
+    // await approve("10000");// 将钱授权给gmx的router(用作杠杆交易)/glpmanager(用作质押)
+    // await updatePrice(BTCPrice, USDTPrice);// 将btc和USDT的价格传入,单位为原token单位，精度为pricefeed精度
+	// await addLiquidity("1000", "1"); // gov添加流动性，gov获取GLP
+	// await approvePlugin() // gov授权plugin，用户授权plugin
 
-	// 限价单：1k USDT开10倍BTC的多仓
-	await increasePosition("1000", 10)// user1买入1000U的BTC，开10倍多仓
-	await updatePrice(BTCPrice.add(1),USDTPrice);// 假设BTC价格上涨了1美元
-	await ExecuteIncreaseOrder()// 执行开辟多仓
+	// // 限价单：1k USDT开10倍BTC的多仓
+	// await increasePosition("1000", 10)// user1买入1000U的BTC，开10倍多仓
+	// await updatePrice(BTCPrice.add(1),USDTPrice);// 假设BTC价格上涨了1美元
+	// await ExecuteIncreaseOrder()// 执行开辟多仓
 
-	// 限价单：将上一步开的持仓量减小一半，押金退500USD，借贷规模减小5k USD
-	// 如果要完全平仓，将借贷规模设定成全部，押金写0即可，自动清算
-	await DecreasePosition("5000", "500") // 退出5000借贷规模，以及500押金
-	await updatePrice(BTCPrice.sub(1),USDTPrice);// 假设BTC价格下跌了1美元
-	await ExecuteDecreaseOrder()// 执行减仓
+	// // 限价单：将上一步开的持仓量减小一半，押金退500USD，借贷规模减小5k USD
+	// // 如果要完全平仓，将借贷规模设定成全部，押金写0即可，自动清算
+	// await DecreasePosition("5000", "500") // 退出5000借贷规模，以及500押金
+	// await updatePrice(BTCPrice.sub(1),USDTPrice);// 假设BTC价格下跌了1美元
+	// await ExecuteDecreaseOrder()// 执行减仓
 
-	// 市价单：1k USDT开10倍BTC的多仓
-	await marketPriceIncrease("1000", 10)
+	// // 市价单：1k USDT开10倍BTC的多仓
+	// await marketPriceIncrease("1000", 10)
 
-	// 市价单：平仓一半
-	await marketPriceDecrease("5000", "500")
+	// // 市价单：平仓一半
+	// await marketPriceDecrease("5000", "500")
+	await pricefeed()
 	process.exit(0);
 }
 

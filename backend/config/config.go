@@ -25,6 +25,7 @@ type Config struct {
 		NFTMarketcontractAddress string `yaml:"NFTMarketcontractAddress"`
 		ContractApiFile          string `yaml:"contractApiFile"`
 		GOVAddress               string `yaml:"GOVAddress"`
+		BtcPriceFeddAddress      string `yaml:"BTCPriceFeed"`
 	} `yaml:"contract"`
 	Account struct {
 		PrivateKey     string `yaml:"privatekey"`
@@ -69,7 +70,7 @@ func Init() {
 	if err != nil {
 		log.Fatalf("读取配置文件失败: %v", err)
 	}
-	V.Set("NodeAddress", "http://127.0.0.1:8554")
+	V.Set("NodeAddress", "http://127.0.0.1:8545")
 }
 
 func GetString(key string) string {
