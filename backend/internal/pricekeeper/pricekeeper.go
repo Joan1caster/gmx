@@ -24,7 +24,6 @@ func UpdatePrice(BTCPrice float64) {
 	}
 
 	privateKey, err := crypto.HexToECDSA(config.AppConfig.Account.PrivateKey)
-	fmt.Println(privateKey)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -57,16 +56,15 @@ func UpdatePrice(BTCPrice float64) {
 
 	btcPriceFed, _ := btcpricefeed.NewBTCPriceFeed(btcPriceFeddAddress, client)
 
-	btcPriceSession := btcpricefeed.BTCPriceFeedSession{
-		Contract:     btcPriceFed,
-		CallOpts:     bind.CallOpts{},
-		TransactOpts: *auth,
-	}
-	btcdecimals, _ := btcPriceFed.Decimals(&bind.CallOpts{})
+	floatVal := new(big.Float).SetFloat64(BTCPrice)
 
-	BTCPriceBig := big.NewFloat(BTCPrice)
+	exponent := new(big.Float).SetFloat64(1e18)
 
-	BTCPriceBigInt, _ := BTCPriceBig.SetMantExp(BTCPriceBig, BTCPriceBig.MantExp(nil)+int(btcdecimals.Int64())).Int64()
+	result := new(big.Float).Mul(floatVal, exponent)
 
-	btcPriceSession.SetLatestAnswer(big.NewInt(BTCPriceBigInt))
+	intVal := new(big.Int)
+
+	big, _ := result.Int(intVal)
+	fmt.Println(big)
+	fmt.Println(btcPriceFed.SetLatestAnswer(auth, big))
 }
