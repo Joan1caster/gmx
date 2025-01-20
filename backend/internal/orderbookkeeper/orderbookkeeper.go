@@ -119,3 +119,7 @@ func GetIncreaseOrderT(userAddress common.Address, orderIndex *big.Int) {
 	caller, _ := orderbook.NewOrderBookCaller(common.HexToAddress(config.AppConfig.Contract.OrderBook), client)
 	fmt.Println(caller.GetIncreaseOrder(&bind.CallOpts{}, userAddress, orderIndex))
 }
+
+func CloseOrder(orderIndex *big.Int) {
+
+}

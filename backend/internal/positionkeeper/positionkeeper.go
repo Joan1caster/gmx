@@ -31,7 +31,6 @@ func getPositionQueueLengths() (*big.Int, *big.Int, *big.Int, *big.Int, error) {
 	positionRouterCaller, _ := positionrouter.NewPositionRouterCaller(common.HexToAddress(config.AppConfig.Contract.PositionRouter), cilent)
 	return positionRouterCaller.GetRequestQueueLengths(&bind.CallOpts{})
 }
-
-func updatePriceBitsAndOptionallyExecute() {
+func GetIncreasePosition() {
 
 }
