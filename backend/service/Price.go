@@ -3,15 +3,15 @@ package service
 import (
 	"encoding/json"
 	"fmt"
-	"gmxBackend/internal/pricekeeper"
-	"gmxBackend/utils"
+	rabbitmq "gmxBackend/middleware/mq"
 	"log"
 	"net/http"
 
 	"github.com/gorilla/websocket"
 )
 
-func GetPrice(Tokens string, priceChan chan string) {
+func GetPrice(Tokens string) {
+	producer := rabbitmq.Producers["PriceUpdater"]
 	dialer := websocket.Dialer{
 		Proxy: http.ProxyFromEnvironment,
 		// HandshakeTimeout: 5 * time.Second,
@@ -46,29 +46,37 @@ func GetPrice(Tokens string, priceChan chan string) {
 		if err != nil {
 			fmt.Println("decode price message error")
 		}
-		if latestPrice[Tokens] == messageJson["p"].(string) {
+
+		messageStr := messageJson["p"].(string)
+		if latestPrice[Tokens] == messageStr {
 			continue
 		}
-		latestPrice[Tokens] = messageJson["p"].(string)
-		priceChan <- messageJson["p"].(string)
-	}
-}
+		latestPrice[Tokens] = messageStr
+		// mq.Publish([]byte(messageStr), "First", "direct", "PriceUpdate")
 
-func UpdatePriceToChain(priceChain chan string) {
-	BTCPriceConn, err := pricekeeper.BTCPriceFeedConnect()
-	if err != nil {
-		fmt.Println("connect rpc error:", err)
-	}
-	for {
-		select {
-		case price, ok := <-priceChain:
-			if !ok {
-				fmt.Println("channel closed")
-			}
-			priceUint256 := utils.StringToUint256(price, 18)
-			BTCPriceConn.UpdateBTCPrice(priceUint256)
-			fmt.Println("BTC price for now:", price)
-
+		err = producer.Publish([]byte(messageStr), "default", "direct", "PriceUpdate")
+		if err != nil {
+			log.Printf("Failed to publish to consumer1: %v", err)
 		}
 	}
 }
+
+// func UpdatePriceToChain(priceChain chan string, mq *rabbitmq.RabbitMQ) {
+// 	BTCPriceConn, err := pricekeeper.BTCPriceFeedConnect()
+// 	priceConsumer := mq.GetConsumer("")
+// 	if err != nil {
+// 		fmt.Println("connect rpc error:", err)
+// 	}
+// 	for {
+// 		select {
+// 		case price, ok := <-priceChain:
+// 			if !ok {
+// 				fmt.Println("channel closed")
+// 			}
+// 			priceUint256 := utils.StringToUint256(price, 18)
+// 			BTCPriceConn.UpdateBTCPrice(priceUint256)
+// 			fmt.Println("BTC price for now:", price)
+
+// 		}
+// 	}
+// }
