@@ -8,9 +8,11 @@ require (
 	github.com/adshao/go-binance/v2 v2.7.1
 	github.com/ethereum/go-ethereum v1.14.12
 	gopkg.in/yaml.v2 v2.4.0
+	gorm.io/driver/mysql v1.5.7
 )
 
 require (
+	github.com/go-sql-driver/mysql v1.7.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
@@ -47,7 +49,7 @@ require (
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/gorilla/websocket v1.5.0 // indirect
+	github.com/gorilla/websocket v1.5.0
 	github.com/holiman/uint256 v1.3.1 // indirect
 	github.com/jpillora/backoff v1.0.0 // indirect
 	github.com/mmcloughlin/addchain v0.4.0 // indirect
