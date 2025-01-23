@@ -83,7 +83,7 @@ func (r *PositionRepository) Delete(position *models.Position) error {
 // 获取所有开仓的头寸
 func (r *PositionRepository) ListOpenPositions() ([]models.Position, error) {
 	var positions []models.Position
-	err := r.db.Where("status = ?", "OPEN").Find(&positions).Error
+	err := r.db.Find(&positions).Error
 	if err != nil {
 		return nil, err
 	}

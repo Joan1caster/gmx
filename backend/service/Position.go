@@ -5,7 +5,6 @@ import (
 	"gmxBackend/blockChain"
 	"gmxBackend/config"
 	"gmxBackend/contracts/core/orderbook"
-	"gmxBackend/models"
 	"gmxBackend/repository"
 	"log"
 
@@ -16,13 +15,13 @@ import (
 type PositionService struct {
 	positionRepo *repository.PositionRepository
 	orderRepo    *repository.OrderRepository
-	positions    []models.Position
 }
 
 func NewPositionService(orRe *repository.OrderRepository, poRe *repository.PositionRepository) *PositionService {
 	return &PositionService{positionRepo: poRe, orderRepo: orRe}
 }
 
+// 订单执行头寸入库
 func (p *PositionService) HandlerPositionInfo() error {
 	client, err := blockChain.GetClient()
 	if err != nil {
