@@ -2,8 +2,10 @@ package service
 
 import (
 	"fmt"
+	"gmxBackend/blockChain"
 	"gmxBackend/config"
 	"gmxBackend/contracts/core/orderbook"
+	"gmxBackend/models"
 	"gmxBackend/repository"
 	"log"
 
@@ -14,6 +16,7 @@ import (
 type PositionService struct {
 	positionRepo *repository.PositionRepository
 	orderRepo    *repository.OrderRepository
+	positions    []models.Position
 }
 
 func NewPositionService(orRe *repository.OrderRepository, poRe *repository.PositionRepository) *PositionService {
@@ -21,7 +24,7 @@ func NewPositionService(orRe *repository.OrderRepository, poRe *repository.Posit
 }
 
 func (p *PositionService) HandlerPositionInfo() error {
-	client, err := GetClient()
+	client, err := blockChain.GetClient()
 	if err != nil {
 		return err
 	}
@@ -51,17 +54,9 @@ func (p *PositionService) HandlerPositionInfo() error {
 	go func() {
 		for event := range exeIncreaseSink {
 			log.Println("Received execute increase order:", event)
-			p.orderRepo.DeleteOrder(event.Account, event.OrderIndex)
-
+			p.positionRepo.CreatePosition(event)
 		}
 	}()
 
-	// 处理执行减仓订单
-	go func() {
-		for event := range exeDecreaseSink {
-			log.Println("Received execute decrease order:", event)
-			p.orderRepo.DeleteOrder(event.Account, event.OrderIndex)
-		}
-	}()
 	return nil
 }

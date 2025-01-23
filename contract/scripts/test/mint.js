@@ -125,18 +125,18 @@ async function approvePlugin() {
 	console.log("Is approved:", isApproved);  // 返回 true/false
 }
 
-async function increasePosition(amountIn, time) {
+async function increasePosition(amountIn, time, price) {
 	const usdt = await contractAt("USDT", USDTaddress)
 	const usdtDecimals = await usdt.decimals()	
 	const btc = await contractAt("BTC", BTCaddress)
 	const btcDecimals = await btc.decimals()	
 	const amount = ethers.BigNumber.from(amountIn)
 	const _amountIn = ethers.utils.parseUnits(amountIn, usdtDecimals)
-	const _minOut = amount.div(BTCPrice).mul(10).pow(btcDecimals).mul(95).div(100);
+	const _minOut = amount.div(price).mul(10).pow(btcDecimals).mul(95).div(100);
 	const _sizeDelta = amount.mul(time).mul(ethers.BigNumber.from(10).pow(30))	
 	const signer = new ethers.Wallet(user1key).connect(provider) 
 	const orderbook = await contractAt("OrderBook", OrderBookaddress, signer)
-	const _BTCPrice = BTCPrice.mul(ethers.BigNumber.from(10).pow(30))
+	const _BTCPrice = ethers.BigNumber.from(price).mul(ethers.BigNumber.from(10).pow(30))
 	const arg = [[USDTaddress, BTCaddress], _amountIn, BTCaddress, _minOut, _sizeDelta, BTCaddress, true, _BTCPrice, true, ExecutionFee, false, {value:ExecutionFee}]
 	const tx = await callWithRetries(orderbook.createIncreaseOrder.bind(orderbook), arg)
 	console.log(`create increase order succeed.`)
@@ -223,15 +223,19 @@ async function getLatestEvents(contract) {
 }
 
 async function main() {
-	// // 提供流动性、余额、授权等，只执行一次即可
-    // await mint("100000"); // 给anvil的第1、2、3个用户铸造btc、usdt
-    // await approve("10000");// 将钱授权给gmx的router(用作杠杆交易)/glpmanager(用作质押)
-    // await updatePrice(BTCPrice, USDTPrice);// 将btc和USDT的价格传入,单位为原token单位，精度为pricefeed精度
-	// await addLiquidity("1000", "1"); // gov添加流动性，gov获取GLP
-	// await approvePlugin() // gov授权plugin，用户授权plugin
+	// 提供流动性、余额、授权等，只执行一次即可
+    await mint("100000"); // 给anvil的第1、2、3个用户铸造btc、usdt
+    await approve("10000");// 将钱授权给gmx的router(用作杠杆交易)/glpmanager(用作质押)
+    await updatePrice(BTCPrice, USDTPrice);// 将btc和USDT的价格传入,单位为原token单位，精度为pricefeed精度
+	await addLiquidity("1000", "1"); // gov添加流动性，gov获取GLP
+	await approvePlugin() // gov授权plugin，用户授权plugin
 
-	// // 限价单：1k USDT开10倍BTC的多仓
-	// await increasePosition("1000", 10)// user1买入1000U的BTC，开10倍多仓
+	// 限价单：100 USDT开10倍BTC的多仓,价格从 targetPrice - range_ 到targetPrice + range_ 
+	const targetPrice = 102800
+	const range_ = 20
+	for (let price=targetPrice-range_; price<targetPrice+range_; price++) {
+		await increasePosition("100",10, price)// user1买入1000U的BTC，开10倍多仓
+	}
 	// await updatePrice(BTCPrice.add(1),USDTPrice);// 假设BTC价格上涨了1美元
 	// await ExecuteIncreaseOrder()// 执行开辟多仓
 
@@ -246,7 +250,7 @@ async function main() {
 
 	// // 市价单：平仓一半
 	// await marketPriceDecrease("5000", "500")
-	await pricefeed()
+	// await pricefeed()
 	process.exit(0);
 }
 

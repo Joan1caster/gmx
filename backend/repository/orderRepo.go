@@ -29,13 +29,12 @@ func (db *OrderRepository) CreateIncreaseOrder(order orderbook.OrderBookCreateIn
 		IndexToken:            order.IndexToken.Hex(),
 		SizeDelta:             utils.Uint256ToString(order.SizeDelta, 18),
 		IsLong:                order.IsLong,
-		TriggerPrice:          utils.Uint256ToString(order.TriggerPrice, 18),
+		TriggerPrice:          utils.Uint256ToString(order.TriggerPrice, 30),
 		TriggerAboveThreshold: order.TriggerAboveThreshold,
 		ExecutionFee:          utils.Uint256ToString(order.ExecutionFee, 18),
 		Type:                  "increase",
 	}
 	result := db.db.Create(&orderModel)
-
 	if result.Error != nil {
 		return result.Error
 	}
@@ -74,7 +73,7 @@ func (db *OrderRepository) CreateDecreaseOrder(order orderbook.OrderBookCreateDe
 		IndexToken:            order.IndexToken.Hex(),
 		SizeDelta:             utils.Uint256ToString(order.SizeDelta, 18),
 		IsLong:                order.IsLong,
-		TriggerPrice:          utils.Uint256ToString(order.TriggerPrice, 18),
+		TriggerPrice:          utils.Uint256ToString(order.TriggerPrice, 30),
 		TriggerAboveThreshold: order.TriggerAboveThreshold,
 		ExecutionFee:          utils.Uint256ToString(order.ExecutionFee, 18),
 		Type:                  "decrease",

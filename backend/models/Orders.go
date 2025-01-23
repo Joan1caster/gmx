@@ -15,8 +15,8 @@ type Order struct {
 	IndexToken            string `gorm:"type:varchar(128)"`
 	SizeDelta             string `gorm:"type:varchar(128)"`
 	IsLong                bool   `gorm:"type:bool"`
-	TriggerPrice          string `gorm:"type:varchar(128)"`
-	TriggerAboveThreshold bool   `gorm:"type:bool"`
+	TriggerPrice          string `gorm:"type:string;index:idx_trigger_price,sort:desc"`
+	TriggerAboveThreshold bool   `gorm:"type:bool;index"`
 	ExecutionFee          string `gorm:"type:varchar(128)"`
 	Type                  string `gorm:"type:varchar(20);check:type in ('increase','decrease')"`
 }

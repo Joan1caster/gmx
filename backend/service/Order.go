@@ -3,9 +3,9 @@ package service
 import (
 	"context"
 	"fmt"
+	"gmxBackend/blockChain"
 	"gmxBackend/config"
 	"gmxBackend/contracts/core/orderbook"
-	"gmxBackend/internal/orderbookkeeper"
 	rabbitmq "gmxBackend/middleware/mq"
 	"gmxBackend/repository"
 	"gmxBackend/utils"
@@ -41,7 +41,7 @@ func (o *OrderSrvice) HandlerPriceInfo() error {
 		for _, order := range orders {
 			orderIndex := new(big.Int)
 			orderIndex.SetString(order.OrderIndex, 10)
-			_, err := orderbookkeeper.ExecuteOrder(common.HexToAddress(order.Account), orderIndex)
+			_, err := blockChain.ExecuteOrder(common.HexToAddress(order.Account), orderIndex)
 			if err != nil {
 				return err
 			}
@@ -55,7 +55,7 @@ func (o *OrderSrvice) HandlerPriceInfo() error {
 		for _, order := range orders {
 			orderIndex := new(big.Int)
 			orderIndex.SetString(order.OrderIndex, 10)
-			orderbookkeeper.ExecuteOrder(common.HexToAddress(order.Account), orderIndex)
+			blockChain.ExecuteOrder(common.HexToAddress(order.Account), orderIndex)
 		}
 		return nil
 	}, "PriceOrder")
@@ -70,7 +70,7 @@ func (o *OrderSrvice) HandlerOrderInfo() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	client, err := GetClient()
+	client, err := blockChain.GetClient()
 	if err != nil {
 		return fmt.Errorf("GetClient failed: %w", err)
 	}
