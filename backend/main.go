@@ -17,7 +17,6 @@ func main() {
 	go service.GetPrice("btcusdt") // 订阅币安的BTC/USDT价格
 
 	// go service.UpdatePriceToChain(priceChain) // 将价格更新到链上
-
 	defer rabbitmq.Shutdown()
 	select {}
 }

@@ -629,32 +629,32 @@ contract Vault is ReentrancyGuard, IVault {
 
     function _decreasePosition(address _account, address _collateralToken, address _indexToken, uint256 _collateralDelta, uint256 _sizeDelta, bool _isLong, address _receiver) private returns (uint256) {
         vaultUtils.validateDecreasePosition(_account, _collateralToken, _indexToken, _collateralDelta, _sizeDelta, _isLong, _receiver);
-        updateCumulativeFundingRate(_collateralToken, _indexToken);
+        updateCumulativeFundingRate(_collateralToken, _indexToken);// 费率 = (费率因子 × 预留金额 × 间隔数) / 资金池总量
 
         bytes32 key = getPositionKey(_account, _collateralToken, _indexToken, _isLong);
-        Position storage position = positions[key];
+        Position storage position = positions[key];// 取得仓位
         _validate(position.size > 0, 31);
         _validate(position.size >= _sizeDelta, 32);
         _validate(position.collateral >= _collateralDelta, 33);
 
-        uint256 collateral = position.collateral;
-        // 按借贷规模等比退出流动性
-        {
+        uint256 collateral = position.collateral;         
+        {// 按借贷规模等比退出流动性
         uint256 reserveDelta = position.reserveAmount.mul(_sizeDelta).div(position.size);
         position.reserveAmount = position.reserveAmount.sub(reserveDelta);
         _decreaseReservedAmount(_collateralToken, reserveDelta);
         }
         // 计算提现的钱=已实现盈利-fee+提出的手续费
+        // 提取押金
         (uint256 usdOut, uint256 usdOutAfterFee) = _reduceCollateral(_account, _collateralToken, _indexToken, _collateralDelta, _sizeDelta, _isLong);
 
         if (position.size != _sizeDelta) {// 如果部分清仓
-            position.entryFundingRate = getEntryFundingRate(_collateralToken, _indexToken, _isLong);
-            position.size = position.size.sub(_sizeDelta);
+            position.entryFundingRate = getEntryFundingRate(_collateralToken, _indexToken, _isLong);//第一行计算的累积费率
+            position.size = position.size.sub(_sizeDelta);// 移除借贷规模
 
             _validatePosition(position.size, position.collateral);
             validateLiquidation(_account, _collateralToken, _indexToken, _isLong, true);
 
-            if (_isLong) {// 如果做多，减少退出借贷规模的保证金，
+            if (_isLong) {// 如果做多，增加提取押金的保证金，减少退出借贷规模的保证金，
                 _increaseGuaranteedUsd(_collateralToken, collateral.sub(position.collateral));
                 _decreaseGuaranteedUsd(_collateralToken, _sizeDelta);
             }
@@ -704,20 +704,20 @@ contract Vault is ReentrancyGuard, IVault {
         bytes32 key = getPositionKey(_account, _collateralToken, _indexToken, _isLong);
         Position memory position = positions[key];
         _validate(position.size > 0, 35);
-
+        // 验证状态，状态码0为不满足强制清仓，1为亏损强制平仓，2为杠杆率太高强制减仓
         (uint256 liquidationState, uint256 marginFees) = validateLiquidation(_account, _collateralToken, _indexToken, _isLong, false);
         _validate(liquidationState != 0, 36);
         if (liquidationState == 2) {
-            // max leverage exceeded but there is collateral remaining after deducting losses so decreasePosition instead
+            // 平仓但返还剩余押金
             _decreasePosition(_account, _collateralToken, _indexToken, 0, position.size, _isLong, _account);
             includeAmmPrice = true;
             return;
         }
-
+        // 计算手续费换算成押金代币
         uint256 feeTokens = usdToTokenMin(_collateralToken, marginFees);
         feeReserves[_collateralToken] = feeReserves[_collateralToken].add(feeTokens);
         emit CollectMarginFees(_collateralToken, marginFees, feeTokens);
-
+        
         _decreaseReservedAmount(_collateralToken, position.reserveAmount);
         if (_isLong) {
             _decreaseGuaranteedUsd(_collateralToken, position.size.sub(position.collateral));
@@ -837,16 +837,16 @@ contract Vault is ReentrancyGuard, IVault {
         if (!shouldUpdate) {
             return;
         }
-
+        // 如果未初始化，用fundingInterval向下取整当前时间
         if (lastFundingTimes[_collateralToken] == 0) {
             lastFundingTimes[_collateralToken] = block.timestamp.div(fundingInterval).mul(fundingInterval);
             return;
         }
-
+        // 未到更新时间
         if (lastFundingTimes[_collateralToken].add(fundingInterval) > block.timestamp) {
             return;
         }
-
+        // 代币累计费率 = (费率因子 × 代币池预留金额 × 间隔数) / 资金池总量
         uint256 fundingRate = getNextFundingRate(_collateralToken);
         cumulativeFundingRates[_collateralToken] = cumulativeFundingRates[_collateralToken].add(fundingRate);
         lastFundingTimes[_collateralToken] = block.timestamp.div(fundingInterval).mul(fundingInterval);
@@ -855,11 +855,12 @@ contract Vault is ReentrancyGuard, IVault {
     }
 
     function getNextFundingRate(address _token) public override view returns (uint256) {
+        // 未到更新时间
         if (lastFundingTimes[_token].add(fundingInterval) > block.timestamp) { return 0; }
-
+        // 时间间隔/单个间隔=间隔数
         uint256 intervals = block.timestamp.sub(lastFundingTimes[_token]).div(fundingInterval);
         uint256 poolAmount = poolAmounts[_token];
-        if (poolAmount == 0) { return 0; }
+        if (poolAmount == 0) { return 0; }// 资金池检查
 
         uint256 _fundingRateFactor = stableTokens[_token] ? stableFundingRateFactor : fundingRateFactor;
         return _fundingRateFactor.mul(reservedAmounts[_token]).mul(intervals).div(poolAmount);
@@ -986,7 +987,7 @@ contract Vault is ReentrancyGuard, IVault {
     function _reduceCollateral(address _account, address _collateralToken, address _indexToken, uint256 _collateralDelta, uint256 _sizeDelta, bool _isLong) private returns (uint256, uint256) {
         bytes32 key = getPositionKey(_account, _collateralToken, _indexToken, _isLong);
         Position storage position = positions[key];
-
+        // 仓位调整费用+
         uint256 fee = _collectMarginFees(_account, _collateralToken, _indexToken, _isLong, _sizeDelta, position.size, position.entryFundingRate);
         bool hasProfit;
         uint256 adjustedDelta;
@@ -1090,16 +1091,14 @@ contract Vault is ReentrancyGuard, IVault {
     }
 
     function _collectMarginFees(address _account, address _collateralToken, address _indexToken, bool _isLong, uint256 _sizeDelta, uint256 _size, uint256 _entryFundingRate) private returns (uint256) {
+        // 收取1/1000 _sizeDelta 的仓位调整手续费
         uint256 feeUsd = getPositionFee(_account, _collateralToken, _indexToken, _isLong, _sizeDelta);
-        
+        // 
         uint256 fundingFee = getFundingFee(_account, _collateralToken, _indexToken, _isLong, _size, _entryFundingRate);
         feeUsd = feeUsd.add(fundingFee);
 
         uint256 feeTokens = usdToTokenMin(_collateralToken, feeUsd);
         feeReserves[_collateralToken] = feeReserves[_collateralToken].add(feeTokens);
-        emit Test(feeUsd, "feeUsd");
-        emit Test(fundingFee, "fundingFee");
-        emit Test(feeTokens, "feeTokens");
         emit CollectMarginFees(_collateralToken, feeUsd, feeTokens);
         return feeUsd;
     }

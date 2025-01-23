@@ -61,32 +61,34 @@ contract VaultUtils is IVaultUtils, Governable {
     function validateLiquidation(address _account, address _collateralToken, address _indexToken, bool _isLong, bool _raise) public view override returns (uint256, uint256) {
         Position memory position = getPosition(_account, _collateralToken, _indexToken, _isLong);
         IVault _vault = vault;
-
+        // 是否盈利，借贷规模*价格变化
         (bool hasProfit, uint256 delta) = _vault.getDelta(_indexToken, position.size, position.averagePrice, _isLong, position.lastIncreasedTime);
+        // 借贷规模*累计费率变化/一百万
         uint256 marginFees = getFundingFee(_account, _collateralToken, _indexToken, _isLong, position.size, position.entryFundingRate);
+        // 万分之一头寸调整费用
         marginFees = marginFees.add(getPositionFee(_account, _collateralToken, _indexToken, _isLong, position.size));
-
+        // 如果亏了并且押金不足，返回手续费=资金费+头寸调整费
         if (!hasProfit && position.collateral < delta) {
             if (_raise) { revert("Vault: losses exceed collateral"); }
             return (1, marginFees);
         }
 
         uint256 remainingCollateral = position.collateral;
-        if (!hasProfit) {
+        if (!hasProfit) { // 如果亏了，计算剩余额度
             remainingCollateral = position.collateral.sub(delta);
         }
-
-        if (remainingCollateral < marginFees) {
+        
+        if (remainingCollateral < marginFees) {// 如果剩余额度小于手续费，返回剩余额度
             if (_raise) { revert("Vault: fees exceed collateral"); }
             // cap the fees to the remainingCollateral
             return (1, remainingCollateral);
         }
 
-        if (remainingCollateral < marginFees.add(_vault.liquidationFeeUsd())) {
+        if (remainingCollateral < marginFees.add(_vault.liquidationFeeUsd())) {// 如果剩余额度小于手续费加额外清算费
             if (_raise) { revert("Vault: liquidation fees exceed collateral"); }
-            return (1, marginFees);
+            return (1, marginFees);// 返回手续费
         }
-
+        // 剩余押金 * 50w < 借贷规模 * 1w
         if (remainingCollateral.mul(_vault.maxLeverage()) < position.size.mul(BASIS_POINTS_DIVISOR)) {
             if (_raise) { revert("Vault: maxLeverage exceeded"); }
             return (2, marginFees);
@@ -100,14 +102,14 @@ contract VaultUtils is IVaultUtils, Governable {
     }
 
     function getPositionFee(address /* _account */, address /* _collateralToken */, address /* _indexToken */, bool /* _isLong */, uint256 _sizeDelta) public override view returns (uint256) {
-        if (_sizeDelta == 0) { return 0; }
+        if (_sizeDelta == 0) { return 0; } 
         uint256 afterFeeUsd = _sizeDelta.mul(BASIS_POINTS_DIVISOR.sub(vault.marginFeeBasisPoints())).div(BASIS_POINTS_DIVISOR);
         return _sizeDelta.sub(afterFeeUsd);
     }
 
     function getFundingFee(address /* _account */, address _collateralToken, address /* _indexToken */, bool /* _isLong */, uint256 _size, uint256 _entryFundingRate) public override view returns (uint256) {
         if (_size == 0) { return 0; }
-
+        // token累计费率 新减旧
         uint256 fundingRate = vault.cumulativeFundingRates(_collateralToken).sub(_entryFundingRate);
         if (fundingRate == 0) { return 0; }
 
