@@ -15,5 +15,6 @@ func (*RiskControl) CheckClosing(TokenPrice []byte) error {
 	//		if condition
 	//			vault.liquidatePosition
 	//			DB: positions delete
+
 	return nil
 }

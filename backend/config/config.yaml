@@ -30,8 +30,8 @@ account:
 
 mysql:
   dbuser: root
-  dbpassword: 1234
-  dbhost: 172.29.240.1
+  dbpassword: 1111
+  dbhost: 127.0.0.1
   dbport: 3306
   dbname: gmxBack
   

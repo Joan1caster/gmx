@@ -6,7 +6,7 @@ import (
 
 type Order struct {
 	gorm.Model
-	Account               string `gorm:"type:varchar(128)""` // 用户ID
+	Account               string `gorm:"type:varchar(128)""`
 	OrderIndex            string `gorm:"type:varchar(128)"`
 	PurchaseToken         string `gorm:"type:varchar(128)"`
 	PurchaseTokenAmount   string `gorm:"type:varchar(128)"`
@@ -18,4 +18,6 @@ type Order struct {
 	TriggerPrice          string `gorm:"type:varchar(128)"`
 	TriggerAboveThreshold bool   `gorm:"type:bool"`
 	ExecutionFee          string `gorm:"type:varchar(128)"`
+	Type                  string `gorm:"type:varchar(20);check:type in ('increase','decrease')"`
+	Status                string `gorm:"type:varchar(20);check:type in ('pending','waiting')"`
 }

@@ -2,12 +2,8 @@ package positionkeeper
 
 import (
 	"gmxBackend/config"
-	positionrouter "gmxBackend/contracts/core/positionrouter"
 	"log"
-	"math/big"
 
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
@@ -18,7 +14,7 @@ func LoadConfig() {
 	}
 }
 
-func getClient() *ethclient.Client {
+func GetClient() *ethclient.Client {
 	client, err := ethclient.Dial(config.AppConfig.Account.NodeAddress)
 	if err != nil {
 		log.Fatalf("Failed to connect to the Ethereum client: %v", err)
@@ -26,17 +22,17 @@ func getClient() *ethclient.Client {
 	return client
 }
 
-func getPositionQueueLengths() (*big.Int, *big.Int, *big.Int, *big.Int, error) {
-	cilent := getClient()
-	positionRouterCaller, _ := positionrouter.NewPositionRouterCaller(common.HexToAddress(config.AppConfig.Contract.PositionRouter), cilent)
-	return positionRouterCaller.GetRequestQueueLengths(&bind.CallOpts{})
-}
+// func getPositionQueueLengths() (*big.Int, *big.Int, *big.Int, *big.Int, error) {
+// 	cilent := GetClient()
+// 	positionRouterCaller, _ := positionrouter.NewPositionRouterCaller(common.HexToAddress(config.AppConfig.Contract.PositionRouter), cilent)
+// 	return positionRouterCaller.GetRequestQueueLengths(&bind.CallOpts{})
+// }
 
-func GetIncreasePosition() {
-	client := getClient()
-	privateKey, err := crypto.HexToECDSA(config.AppConfig.Account.PrivateKey)
+// func GetIncreasePosition() {
+// 	client := GetClient()
+// 	privateKey, err := crypto.HexToECDSA(config.AppConfig.Account.PrivateKey)
 
-	positionRouterCaller, _ := positionrouter.NewPositionRouterCaller(common.HexToAddress(config.AppConfig.Contract.PositionRouter), cilent)
+// 	positionRouterCaller, _ := positionrouter.NewPositionRouterCaller(common.HexToAddress(config.AppConfig.Contract.PositionRouter), cilent)
 
-	positionRouterCaller.GetIncreasePositionRequest
-}
+// 	positionRouterCaller.GetIncreasePositionRequest
+// }

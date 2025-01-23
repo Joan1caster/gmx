@@ -23,7 +23,7 @@ func GetPrice(Tokens string) {
 
 	c, resp, err := dialer.Dial(url, nil)
 	if err != nil {
-		log.Printf("Dial error: %v\n", err)
+		log.Printf("connect to binance error: %v\n", err)
 		if resp != nil {
 			log.Printf("HTTP Response: %+v\n", resp)
 		}

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"gmxBackend/config"
 	"gmxBackend/contracts/core/orderbook"
 	"gmxBackend/internal/orderbookkeeper"
@@ -17,6 +18,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// 处理价格更新
 func HandlerPriceInfo(db *gorm.DB) error {
 	Price_Order := rabbitmq.Consumers["PriceUpdater"]
 
@@ -32,7 +34,10 @@ func HandlerPriceInfo(db *gorm.DB) error {
 		for _, order := range orders {
 			orderIndex := new(big.Int)
 			orderIndex.SetString(order.OrderIndex, 10)
-			orderbookkeeper.ExecuteOrder(common.HexToAddress(order.Account), orderIndex)
+			_, err := orderbookkeeper.ExecuteOrder(common.HexToAddress(order.Account), orderIndex)
+			if err != nil {
+				return err
+			}
 		}
 
 		orders, err = repository.NewOrderRepository(db).GetLessOrderByPrice(price)
@@ -53,55 +58,90 @@ func HandlerPriceInfo(db *gorm.DB) error {
 	return nil
 }
 
+// 处理订单事件
 func HandlerOrderInfo(db *gorm.DB) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
 	// 建立基本连接
 	client, err := ethclient.Dial("ws://127.0.0.1:8545")
 	if err != nil {
-		log.Fatal("dial failed")
+		return fmt.Errorf("connect to block chain failed: %w", err)
 	}
-	log.Println(config.AppConfig.Contract.OrderBook)
-	filter, _ := orderbook.NewOrderBookFilterer(common.HexToAddress(config.AppConfig.Contract.OrderBook), client)
+
+	log.Println(config.GetString("OrderBook"))
+	filter, err := orderbook.NewOrderBookFilterer(common.HexToAddress(config.GetString("OrderBook")), client)
+	if err != nil {
+		return fmt.Errorf("create filter failed: %w", err)
+	}
 
 	// 初始化管道
 	account := []common.Address{}
 	var x uint64 = 0
 	increaseSink := make(chan *orderbook.OrderBookCreateIncreaseOrder)
 	decreaseSink := make(chan *orderbook.OrderBookCreateDecreaseOrder)
+	exeIncreaseSink := make(chan *orderbook.OrderBookExecuteIncreaseOrder)
+	exeDecreaseSink := make(chan *orderbook.OrderBookExecuteDecreaseOrder)
 
+	// 订阅所有事件
 	increaseSub, err := filter.WatchCreateIncreaseOrder(&bind.WatchOpts{Start: &x}, increaseSink, account)
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("WatchCreateIncreaseOrder failed: %w", err)
 	}
 	defer increaseSub.Unsubscribe()
 
 	decreaseSub, err := filter.WatchCreateDecreaseOrder(&bind.WatchOpts{Start: &x}, decreaseSink, account)
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("WatchCreateDecreaseOrder failed: %w", err)
 	}
 	defer decreaseSub.Unsubscribe()
 
+	exeIncreaseSub, err := filter.WatchExecuteIncreaseOrder(&bind.WatchOpts{Start: &x}, exeIncreaseSink, account)
+	if err != nil {
+		return fmt.Errorf("WatchExecuteIncreaseOrder failed: %w", err)
+	}
+	defer exeIncreaseSub.Unsubscribe()
+
+	exeDecreaseSub, err := filter.WatchExecuteDecreaseOrder(&bind.WatchOpts{Start: &x}, exeDecreaseSink, account)
+	if err != nil {
+		return fmt.Errorf("WatchExecuteDecreaseOrder failed: %w", err)
+	}
+	defer exeDecreaseSub.Unsubscribe()
+
 	log.Println("Start to handle order info")
 
-	log.Println("Start to handle increase order info")
+	// 处理创建增仓订单
 	go func() {
-		for {
-			for event := range increaseSink {
-				log.Println(event)
-				repository.NewOrderRepository(db).CreateIncreaseOrder(*event)
-			}
+		for event := range increaseSink {
+			log.Println("Received create increase order:", event)
+			repository.NewOrderRepository(db).CreateIncreaseOrder(*event)
 		}
 	}()
 
+	// 处理创建减仓订单
 	go func() {
-		for {
-			for event := range decreaseSink {
-				log.Println(event)
-				repository.NewOrderRepository(db).CreateDecreaseOrder(*event)
-			}
+		for event := range decreaseSink {
+			log.Println("Received create decrease order:", event)
+			repository.NewOrderRepository(db).CreateDecreaseOrder(*event)
 		}
 	}()
+
+	// 处理执行增仓订单
+	go func() {
+		for event := range exeIncreaseSink {
+			log.Println("Received execute increase order:", event)
+			repository.NewOrderRepository(db).DeleteOrder(*event)
+		}
+	}()
+
+	// 处理执行减仓订单
+	go func() {
+		for event := range exeDecreaseSink {
+			log.Println("Received execute decrease order:", event)
+			repository.NewOrderRepository(db).DeleteOrder(*event)
+		}
+	}()
+
 	<-ctx.Done()
 	return nil
 }

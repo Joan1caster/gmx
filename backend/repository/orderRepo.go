@@ -6,6 +6,7 @@ import (
 	"gmxBackend/utils"
 	"math/big"
 
+	"github.com/syndtr/goleveldb/leveldb/errors"
 	"gorm.io/gorm"
 )
 
@@ -30,6 +31,8 @@ func (db *OrderRepository) CreateIncreaseOrder(order orderbook.OrderBookCreateIn
 		TriggerPrice:          utils.Uint256ToString(order.TriggerPrice, 18),
 		TriggerAboveThreshold: order.TriggerAboveThreshold,
 		ExecutionFee:          utils.Uint256ToString(order.ExecutionFee, 18),
+		Type:                  "increase",
+		Status:                "waiting",
 	}
 	result := db.db.Create(&orderModel)
 
@@ -74,6 +77,8 @@ func (db *OrderRepository) CreateDecreaseOrder(order orderbook.OrderBookCreateDe
 		TriggerPrice:          utils.Uint256ToString(order.TriggerPrice, 18),
 		TriggerAboveThreshold: order.TriggerAboveThreshold,
 		ExecutionFee:          utils.Uint256ToString(order.ExecutionFee, 18),
+		Type:                  "decrease",
+		Status:                "waiting",
 	}
 	result := db.db.Create(&orderModel)
 
@@ -82,4 +87,18 @@ func (db *OrderRepository) CreateDecreaseOrder(order orderbook.OrderBookCreateDe
 	}
 
 	return nil
+}
+
+func (db *OrderRepository) DeleteOrder(orderEvent *orderbook.OrderBookExecuteIncreaseOrder) error {
+	var order models.Order
+	result := db.db.Where("account = ? and order_index = ?",
+		orderEvent.Account.Hex(),
+		utils.Uint256ToString(orderEvent.OrderIndex, 18),
+	).Find(&order)
+
+	if result.Error != nil {
+		return errors.New("Search Order Error:%v", result.Error)
+	}
+
+	return db.db.Delete(order).Error
 }
