@@ -36,7 +36,7 @@ func getClient() *ethclient.Client {
 	return client
 }
 
-func executeOrder(useraddress common.Address, orderIndex *big.Int) {
+func ExecuteOrder(useraddress common.Address, orderIndex *big.Int) {
 	client := getClient()
 
 	privateKey, err := crypto.HexToECDSA(config.AppConfig.Account.PrivateKey)
@@ -118,8 +118,4 @@ func GetIncreaseOrderT(userAddress common.Address, orderIndex *big.Int) {
 	client := getClient()
 	caller, _ := orderbook.NewOrderBookCaller(common.HexToAddress(config.AppConfig.Contract.OrderBook), client)
 	fmt.Println(caller.GetIncreaseOrder(&bind.CallOpts{}, userAddress, orderIndex))
-}
-
-func CloseOrder(orderIndex *big.Int) {
-
 }
