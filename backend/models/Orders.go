@@ -1,24 +1,21 @@
 package models
 
 import (
-	"math/big"
-
-	"github.com/ethereum/go-ethereum/common"
 	"gorm.io/gorm"
 )
 
 type Order struct {
 	gorm.Model
-	Account               common.Address `gorm:"type:varchar(32)""` // 用户ID
-	OrderIndex            *big.Int       `gorm:"type:int"`
-	PurchaseToken         common.Address `gorm:"type:varchar(20)"`
-	PurchaseTokenAmount   *big.Int       `gorm:"type:int"`
-	CollateralToken       common.Address `gorm:"type:varchar(20)"`
-	CollateralDelta       *big.Int       `gorm:"type:int"`
-	IndexToken            common.Address `gorm:"type:varchar(20)"`
-	SizeDelta             *big.Int       `gorm:"type:int"`
-	IsLong                bool           `gorm:"type:bool"`
-	TriggerPrice          *big.Int       `gorm:"type:int"`
-	TriggerAboveThreshold bool           `gorm:"type:bool"`
-	ExecutionFee          *big.Int       `gorm:"type:int"`
+	Account               string `gorm:"type:varchar(128)""` // 用户ID
+	OrderIndex            string `gorm:"type:varchar(128)"`
+	PurchaseToken         string `gorm:"type:varchar(128)"`
+	PurchaseTokenAmount   string `gorm:"type:varchar(128)"`
+	CollateralToken       string `gorm:"type:varchar(128)"`
+	CollateralDelta       string `gorm:"type:varchar(128)"`
+	IndexToken            string `gorm:"type:varchar(128)"`
+	SizeDelta             string `gorm:"type:varchar(128)"`
+	IsLong                bool   `gorm:"type:bool"`
+	TriggerPrice          string `gorm:"type:varchar(128)"`
+	TriggerAboveThreshold bool   `gorm:"type:bool"`
+	ExecutionFee          string `gorm:"type:varchar(128)"`
 }

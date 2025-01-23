@@ -1,29 +1,50 @@
 package service
 
 import (
-	"fmt"
+	"context"
+	"gmxBackend/config"
 	"gmxBackend/contracts/core/orderbook"
 	"gmxBackend/internal/orderbookkeeper"
 	rabbitmq "gmxBackend/middleware/mq"
 	"gmxBackend/repository"
+	"gmxBackend/utils"
 	"log"
+	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"gorm.io/gorm"
 )
 
-func HandlerPriceInfo(msg []byte) error {
+func HandlerPriceInfo(db *gorm.DB) error {
 	Price_Order := rabbitmq.Consumers["PriceUpdater"]
 
 	// 设置消费者处理函数
 	err := Price_Order.Consume(func(msg []byte) error {
-		price := string(msg)
 
-		for _, order := range repository.NewOrderRepository().GetIncreaseOrder(price) {
-			orderbookkeeper.ExecuteOrder(order.Account, order.OrderIndex)
+		price := utils.StringToUint256(string(msg), 18)
+		orders, err := repository.NewOrderRepository(db).GetLessOrderByPrice(price)
+		if err != nil {
+			log.Fatal(err)
 		}
 
+		for _, order := range orders {
+			orderIndex := new(big.Int)
+			orderIndex.SetString(order.OrderIndex, 10)
+			orderbookkeeper.ExecuteOrder(common.HexToAddress(order.Account), orderIndex)
+		}
+
+		orders, err = repository.NewOrderRepository(db).GetLessOrderByPrice(price)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		for _, order := range orders {
+			orderIndex := new(big.Int)
+			orderIndex.SetString(order.OrderIndex, 10)
+			orderbookkeeper.ExecuteOrder(common.HexToAddress(order.Account), orderIndex)
+		}
 		return nil
 	}, "PriceOrder")
 	if err != nil {
@@ -32,35 +53,43 @@ func HandlerPriceInfo(msg []byte) error {
 	return nil
 }
 
-func HandlerOrderInfo() {
+func HandlerOrderInfo(db *gorm.DB) error {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	// 建立基本连接
 	client, err := ethclient.Dial("ws://127.0.0.1:8545")
 	if err != nil {
 		log.Fatal("dial failed")
 	}
-	filter, _ := orderbook.NewOrderBookFilterer(common.HexToAddress("0x84eA74d481Ee0A5332c457a4d796187F6Ba67fEB"), client)
+	log.Println(config.AppConfig.Contract.OrderBook)
+	filter, _ := orderbook.NewOrderBookFilterer(common.HexToAddress(config.AppConfig.Contract.OrderBook), client)
 
 	// 初始化管道
 	account := []common.Address{}
+	var x uint64 = 0
 	increaseSink := make(chan *orderbook.OrderBookCreateIncreaseOrder)
 	decreaseSink := make(chan *orderbook.OrderBookCreateDecreaseOrder)
 
-	increaseSub, err := filter.WatchCreateIncreaseOrder(&bind.WatchOpts{}, increaseSink, account)
+	increaseSub, err := filter.WatchCreateIncreaseOrder(&bind.WatchOpts{Start: &x}, increaseSink, account)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer increaseSub.Unsubscribe()
 
-	decreaseSub, err := filter.WatchCreateDecreaseOrder(&bind.WatchOpts{}, decreaseSink, account)
+	decreaseSub, err := filter.WatchCreateDecreaseOrder(&bind.WatchOpts{Start: &x}, decreaseSink, account)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer decreaseSub.Unsubscribe()
 
+	log.Println("Start to handle order info")
+
+	log.Println("Start to handle increase order info")
 	go func() {
 		for {
 			for event := range increaseSink {
-				repository.NewOrderRepository().CreateIncreaseOrder(*event)
+				log.Println(event)
+				repository.NewOrderRepository(db).CreateIncreaseOrder(*event)
 			}
 		}
 	}()
@@ -68,9 +97,11 @@ func HandlerOrderInfo() {
 	go func() {
 		for {
 			for event := range decreaseSink {
-				fmt.Printf("Received event: %+v\n", event)
+				log.Println(event)
+				repository.NewOrderRepository(db).CreateDecreaseOrder(*event)
 			}
 		}
 	}()
-
+	<-ctx.Done()
+	return nil
 }

@@ -1,12 +1,11 @@
 package rabbitmq
 
 import (
-	"fmt"
 	"log"
 )
 
 func InitMQ() {
-	err := InitConnection("amqp://guest:guest@localhost:5672/")
+	err := InitConnection("amqp://guest:guest@127.0.0.1:5672/")
 	if err != nil {
 		log.Fatalf("Failed to connect to RabbitMQ: %v", err)
 	}
@@ -52,28 +51,28 @@ func InitMQ() {
 		log.Fatalf("Failed to bind queue2: %v", err)
 	}
 
-	// 设置消费者处理函数
-	err = Price_Order.Consume(func(msg []byte) error {
-		fmt.Printf("Price_Order received: %s\n", string(msg))
-		return nil
-	}, "PriceOrder")
-	if err != nil {
-		log.Fatalf("Failed to start consuming on consumer1: %v", err)
-	}
+	// // 设置消费者处理函数
+	// err = Price_Order.Consume(func(msg []byte) error {
+	// 	fmt.Printf("Price_Order received: %s\n", string(msg))
+	// 	return nil
+	// }, "PriceOrder")
+	// if err != nil {
+	// 	log.Fatalf("Failed to start consuming on consumer1: %v", err)
+	// }
 
-	err = Price_User.Consume(func(msg []byte) error {
-		fmt.Printf("Price_User received: %s\n", string(msg))
-		return nil
-	}, "PriceUser")
-	if err != nil {
-		log.Fatalf("Failed to start consuming on consumer2: %v", err)
-	}
+	// err = Price_User.Consume(func(msg []byte) error {
+	// 	fmt.Printf("Price_User received: %s\n", string(msg))
+	// 	return nil
+	// }, "PriceUser")
+	// if err != nil {
+	// 	log.Fatalf("Failed to start consuming on consumer2: %v", err)
+	// }
 
-	err = Price_Platform.Consume(func(msg []byte) error {
-		fmt.Printf("Price_Platform received: %s\n", string(msg))
-		return nil
-	}, "PricePlatform")
-	if err != nil {
-		log.Fatalf("Failed to start consuming on consumer2: %v", err)
-	}
+	// err = Price_Platform.Consume(func(msg []byte) error {
+	// 	fmt.Printf("Price_Platform received: %s\n", string(msg))
+	// 	return nil
+	// }, "PricePlatform")
+	// if err != nil {
+	// 	log.Fatalf("Failed to start consuming on consumer2: %v", err)
+	// }
 }
