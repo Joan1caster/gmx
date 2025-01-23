@@ -1,20 +1,26 @@
 package models
 
 import (
-	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 )
 
+// Order 表示订单事件的存储结构体
 type Position struct {
-	gorm.Model
-	UserID        uint            `gorm:"index"`              // 用户ID
-	Symbol        string          `gorm:"type:varchar(20)"`   // 交易对
-	Side          string          `gorm:"type:varchar(10)"`   // 方向：LONG/SHORT
-	Size          decimal.Decimal `gorm:"type:decimal(32,8)"` // 持仓数量
-	EntryPrice    decimal.Decimal `gorm:"type:decimal(32,8)"` // 开仓均价
-	Leverage      int             `gorm:"type:int"`           // 杠杆倍数
-	MarginUsed    decimal.Decimal `gorm:"type:decimal(32,8)"` // 占用保证金
-	UnrealizedPnL decimal.Decimal `gorm:"type:decimal(32,8)"` // 未实现盈亏
-	LiqPrice      decimal.Decimal `gorm:"type:decimal(32,8)"` // 强平价格
-	Status        string          `gorm:"type:varchar(20)"`   // 状态：OPEN/CLOSED
+	gorm.Model                   // 包含 ID, CreatedAt, UpdatedAt, DeletedAt
+	Account               string `gorm:"type:varchar(42);index"` // ETH 地址长度为42（包含0x前缀）
+	OrderIndex            string `gorm:"type:varchar(78)"`       // 存储big.Int的字符串表示
+	PurchaseToken         string `gorm:"type:varchar(42)"`
+	PurchaseTokenAmount   string `gorm:"type:varchar(78)"`
+	CollateralToken       string `gorm:"type:varchar(42)"`
+	IndexToken            string `gorm:"type:varchar(42)"`
+	SizeDelta             string `gorm:"type:varchar(78)"`
+	IsLong                bool
+	TriggerPrice          string `gorm:"type:varchar(78)"`
+	TriggerAboveThreshold bool
+	ExecutionFee          string `gorm:"type:varchar(78)"`
+	ExecutionPrice        string `gorm:"type:varchar(78)"`
+	BlockNumber           uint64 `gorm:"index"`
+	BlockHash             string `gorm:"type:varchar(66)"`
+	TxHash                string `gorm:"type:varchar(66);index"`
+	TxIndex               uint
 }

@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"gmxBackend/contracts/core/orderbook"
 	"gmxBackend/models"
 
 	"gorm.io/gorm"
@@ -14,7 +15,26 @@ func NewPositionReposttory(db_ *gorm.DB) *PositionRepository {
 	return &PositionRepository{db: db_}
 }
 
-func (r *PositionRepository) Create(position models.Position) error {
+func (r *PositionRepository) CreatePosition(positionEvent *orderbook.OrderBookExecuteIncreaseOrder) error {
+	position := &models.Position{
+		Account:               positionEvent.Account.Hex(),
+		OrderIndex:            positionEvent.OrderIndex.String(),
+		PurchaseToken:         positionEvent.PurchaseToken.Hex(),
+		PurchaseTokenAmount:   positionEvent.PurchaseTokenAmount.String(),
+		CollateralToken:       positionEvent.CollateralToken.Hex(),
+		IndexToken:            positionEvent.IndexToken.Hex(),
+		SizeDelta:             positionEvent.SizeDelta.String(),
+		IsLong:                positionEvent.IsLong,
+		TriggerPrice:          positionEvent.TriggerPrice.String(),
+		TriggerAboveThreshold: positionEvent.TriggerAboveThreshold,
+		ExecutionFee:          positionEvent.ExecutionFee.String(),
+		ExecutionPrice:        positionEvent.ExecutionPrice.String(),
+		BlockNumber:           positionEvent.Raw.BlockNumber,
+		BlockHash:             positionEvent.Raw.BlockHash.Hex(),
+		TxHash:                positionEvent.Raw.TxHash.Hex(),
+		TxIndex:               positionEvent.Raw.TxIndex,
+	}
+
 	return r.db.Create(position).Error
 }
 
@@ -46,7 +66,7 @@ func (r *PositionRepository) ListByUserID(userID uint) ([]models.Position, error
 }
 
 // 更新多个字段
-func (r *PositionRepository) Update(position *models.Position) error {
+func (r *PositionRepository) UpdatePosition(position *orderbook.OrderBookExecuteDecreaseOrder) error {
 	return r.db.Save(position).Error
 }
 

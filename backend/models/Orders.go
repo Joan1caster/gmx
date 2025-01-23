@@ -19,5 +19,4 @@ type Order struct {
 	TriggerAboveThreshold bool   `gorm:"type:bool"`
 	ExecutionFee          string `gorm:"type:varchar(128)"`
 	Type                  string `gorm:"type:varchar(20);check:type in ('increase','decrease')"`
-	Status                string `gorm:"type:varchar(20);check:type in ('pending','waiting')"`
 }

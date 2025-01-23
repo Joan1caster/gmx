@@ -33,7 +33,6 @@ func (db *OrderRepository) CreateIncreaseOrder(order orderbook.OrderBookCreateIn
 		TriggerAboveThreshold: order.TriggerAboveThreshold,
 		ExecutionFee:          utils.Uint256ToString(order.ExecutionFee, 18),
 		Type:                  "increase",
-		Status:                "waiting",
 	}
 	result := db.db.Create(&orderModel)
 
@@ -79,7 +78,6 @@ func (db *OrderRepository) CreateDecreaseOrder(order orderbook.OrderBookCreateDe
 		TriggerAboveThreshold: order.TriggerAboveThreshold,
 		ExecutionFee:          utils.Uint256ToString(order.ExecutionFee, 18),
 		Type:                  "decrease",
-		Status:                "waiting",
 	}
 	result := db.db.Create(&orderModel)
 

@@ -14,7 +14,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethclient"
 )
 
 type OrderSrvice struct {
@@ -71,10 +70,9 @@ func (o *OrderSrvice) HandlerOrderInfo() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// 建立基本连接
-	client, err := ethclient.Dial("ws://127.0.0.1:8545")
+	client, err := GetClient()
 	if err != nil {
-		return fmt.Errorf("connect to block chain failed: %w", err)
+		return fmt.Errorf("GetClient failed: %w", err)
 	}
 
 	log.Println(config.GetString("OrderBook"))
@@ -104,18 +102,6 @@ func (o *OrderSrvice) HandlerOrderInfo() error {
 	}
 	defer decreaseSub.Unsubscribe()
 
-	exeIncreaseSub, err := filter.WatchExecuteIncreaseOrder(&bind.WatchOpts{Start: &x}, exeIncreaseSink, account)
-	if err != nil {
-		return fmt.Errorf("WatchExecuteIncreaseOrder failed: %w", err)
-	}
-	defer exeIncreaseSub.Unsubscribe()
-
-	exeDecreaseSub, err := filter.WatchExecuteDecreaseOrder(&bind.WatchOpts{Start: &x}, exeDecreaseSink, account)
-	if err != nil {
-		return fmt.Errorf("WatchExecuteDecreaseOrder failed: %w", err)
-	}
-	defer exeDecreaseSub.Unsubscribe()
-
 	log.Println("Start to handle order info")
 
 	// 处理创建增仓订单
@@ -134,6 +120,18 @@ func (o *OrderSrvice) HandlerOrderInfo() error {
 		}
 	}()
 
+	exeIncreaseSub, err := filter.WatchExecuteIncreaseOrder(&bind.WatchOpts{Start: &x}, exeIncreaseSink, account)
+	if err != nil {
+		return fmt.Errorf("WatchExecuteIncreaseOrder failed: %w", err)
+	}
+	defer exeIncreaseSub.Unsubscribe()
+
+	exeDecreaseSub, err := filter.WatchExecuteDecreaseOrder(&bind.WatchOpts{Start: &x}, exeDecreaseSink, account)
+	if err != nil {
+		return fmt.Errorf("WatchExecuteDecreaseOrder failed: %w", err)
+	}
+	defer exeDecreaseSub.Unsubscribe()
+
 	// 处理执行增仓订单
 	go func() {
 		for event := range exeIncreaseSink {
@@ -150,7 +148,6 @@ func (o *OrderSrvice) HandlerOrderInfo() error {
 			o.orderRepo.DeleteOrder(event.Account, event.OrderIndex)
 		}
 	}()
-
 	<-ctx.Done()
 	return nil
 }
