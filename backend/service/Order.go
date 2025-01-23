@@ -15,18 +15,26 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"gorm.io/gorm"
 )
 
+type OrderSrvice struct {
+	orderRepo    *repository.OrderRepository
+	positionRepo *repository.PositionRepository
+}
+
+func NewOrderService(orderrepo *repository.OrderRepository, positionrepo *repository.PositionRepository) *OrderSrvice {
+	return &OrderSrvice{orderRepo: orderrepo, positionRepo: positionrepo}
+}
+
 // 处理价格更新
-func HandlerPriceInfo(db *gorm.DB) error {
+func (o *OrderSrvice) HandlerPriceInfo() error {
 	Price_Order := rabbitmq.Consumers["PriceUpdater"]
 
 	// 设置消费者处理函数
 	err := Price_Order.Consume(func(msg []byte) error {
 
 		price := utils.StringToUint256(string(msg), 18)
-		orders, err := repository.NewOrderRepository(db).GetLessOrderByPrice(price)
+		orders, err := o.orderRepo.GetLessOrderByPrice(price)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -40,7 +48,7 @@ func HandlerPriceInfo(db *gorm.DB) error {
 			}
 		}
 
-		orders, err = repository.NewOrderRepository(db).GetLessOrderByPrice(price)
+		orders, err = o.orderRepo.GetLessOrderByPrice(price)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -59,7 +67,7 @@ func HandlerPriceInfo(db *gorm.DB) error {
 }
 
 // 处理订单事件
-func HandlerOrderInfo(db *gorm.DB) error {
+func (o *OrderSrvice) HandlerOrderInfo() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -114,7 +122,7 @@ func HandlerOrderInfo(db *gorm.DB) error {
 	go func() {
 		for event := range increaseSink {
 			log.Println("Received create increase order:", event)
-			repository.NewOrderRepository(db).CreateIncreaseOrder(*event)
+			o.orderRepo.CreateIncreaseOrder(*event)
 		}
 	}()
 
@@ -122,7 +130,7 @@ func HandlerOrderInfo(db *gorm.DB) error {
 	go func() {
 		for event := range decreaseSink {
 			log.Println("Received create decrease order:", event)
-			repository.NewOrderRepository(db).CreateDecreaseOrder(*event)
+			o.orderRepo.CreateDecreaseOrder(*event)
 		}
 	}()
 
@@ -130,7 +138,8 @@ func HandlerOrderInfo(db *gorm.DB) error {
 	go func() {
 		for event := range exeIncreaseSink {
 			log.Println("Received execute increase order:", event)
-			repository.NewOrderRepository(db).DeleteOrder(*event)
+			o.orderRepo.DeleteOrder(event.Account, event.OrderIndex)
+
 		}
 	}()
 
@@ -138,7 +147,7 @@ func HandlerOrderInfo(db *gorm.DB) error {
 	go func() {
 		for event := range exeDecreaseSink {
 			log.Println("Received execute decrease order:", event)
-			repository.NewOrderRepository(db).DeleteOrder(*event)
+			o.orderRepo.DeleteOrder(event.Account, event.OrderIndex)
 		}
 	}()
 

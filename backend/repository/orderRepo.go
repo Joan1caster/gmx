@@ -6,6 +6,7 @@ import (
 	"gmxBackend/utils"
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	"gorm.io/gorm"
 )
@@ -89,15 +90,15 @@ func (db *OrderRepository) CreateDecreaseOrder(order orderbook.OrderBookCreateDe
 	return nil
 }
 
-func (db *OrderRepository) DeleteOrder(orderEvent *orderbook.OrderBookExecuteIncreaseOrder) error {
+func (db *OrderRepository) DeleteOrder(account common.Address, index *big.Int) error {
 	var order models.Order
 	result := db.db.Where("account = ? and order_index = ?",
-		orderEvent.Account.Hex(),
-		utils.Uint256ToString(orderEvent.OrderIndex, 18),
+		account.Hex(),
+		utils.Uint256ToString(index, 18),
 	).Find(&order)
 
 	if result.Error != nil {
-		return errors.New("Search Order Error:%v", result.Error)
+		return errors.New("Search Order Error:" + result.Error.Error())
 	}
 
 	return db.db.Delete(order).Error

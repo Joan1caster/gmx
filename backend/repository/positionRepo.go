@@ -10,6 +10,10 @@ type PositionRepository struct {
 	db *gorm.DB
 }
 
+func NewPositionReposttory(db_ *gorm.DB) *PositionRepository {
+	return &PositionRepository{db: db_}
+}
+
 func (r *PositionRepository) Create(position models.Position) error {
 	return r.db.Create(position).Error
 }

@@ -5,6 +5,7 @@ import (
 	"gmxBackend/config"
 	"gmxBackend/internal/database"
 	rabbitmq "gmxBackend/middleware/mq"
+	"gmxBackend/repository"
 	"gmxBackend/service"
 	"log"
 )
@@ -16,7 +17,7 @@ func main() {
 	config.LoadConfig("config/config.yaml")
 
 	rabbitmq.InitMQ()
-	// Connect to the database
+
 	if err := database.ConnectDB(); err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
@@ -24,9 +25,14 @@ func main() {
 
 	database.InitTable()
 
-	go service.GetPrice("btcusdt")                // 订阅币安的BTC/USDT价格
-	go service.HandlerOrderInfo(database.GetDB()) // 订阅订单信息
-	// go service.HandlerPriceInfo(database.GetDB())
+	OrderRepo := repository.NewOrderRepository(database.GetDB())
+	PositionRepo := repository.NewPositionReposttory(database.GetDB())
+
+	service_ := service.NewOrderService(OrderRepo, PositionRepo)
+
+	go service.GetPrice("btcusdt") // 订阅币安的BTC/USDT价格
+	go service_.HandlerOrderInfo() // 订阅订单信息
+	// go service_.HandlerPriceInfo()
 
 	// go service.UpdatePriceToChain(priceChain) // 将价格更新到链上
 	defer rabbitmq.Shutdown()

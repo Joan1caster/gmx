@@ -91,7 +91,7 @@ func BTCPriceFeedConnect() (*PriceKeeper, error) {
 
 // UpdatePrice 更新价格
 func (keeper *PriceKeeper) UpdateBTCPrice(BTCPrice *big.Int) error {
-
+	return nil
 	_, err := keeper.btcPriceSession.SetLatestAnswer(BTCPrice)
 	return err
 }
