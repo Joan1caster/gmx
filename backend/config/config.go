@@ -32,6 +32,13 @@ type Config struct {
 		AccountAddress string `yaml:"address"`
 		NodeAddress    string `yaml:"eth_rpc_url"`
 	} `yaml:"account"`
+	MySQL struct {
+		DBUser     string `yaml:"dbuser"`
+		DBPassword string `yaml:"dbpassword"`
+		DBHost     string `yaml:"dbhost"`
+		DBPort     int    `yaml:"dbport"`
+		DBName     string `yaml:"dbname"`
+	} `yaml:"mysql"`
 }
 
 // LoadConfig loads the configuration from the YAML file.

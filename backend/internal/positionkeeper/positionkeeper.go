@@ -31,6 +31,12 @@ func getPositionQueueLengths() (*big.Int, *big.Int, *big.Int, *big.Int, error) {
 	positionRouterCaller, _ := positionrouter.NewPositionRouterCaller(common.HexToAddress(config.AppConfig.Contract.PositionRouter), cilent)
 	return positionRouterCaller.GetRequestQueueLengths(&bind.CallOpts{})
 }
-func GetIncreasePosition() {
 
+func GetIncreasePosition() {
+	client := getClient()
+	privateKey, err := crypto.HexToECDSA(config.AppConfig.Account.PrivateKey)
+
+	positionRouterCaller, _ := positionrouter.NewPositionRouterCaller(common.HexToAddress(config.AppConfig.Contract.PositionRouter), cilent)
+
+	positionRouterCaller.GetIncreasePositionRequest
 }
