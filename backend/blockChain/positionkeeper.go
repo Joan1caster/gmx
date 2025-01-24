@@ -5,7 +5,7 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"gmxBackend/config"
-	"gmxBackend/contracts/oracle/btcpricefeed"
+	"gmxBackend/contracts/core/vault"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -14,16 +14,16 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
-type PriceKeeper struct {
-	client          *ethclient.Client
-	auth            *bind.TransactOpts
-	btcPriceFed     *btcpricefeed.BTCPriceFeed
-	btcPriceSession *btcpricefeed.BTCPriceFeedSession
+type PositionKeeper struct {
+	client       *ethclient.Client
+	auth         *bind.TransactOpts
+	vault        *vault.Vault
+	vaultSession *vault.VaultSession
 }
 
 // Connect 建立连接并初始化所需组件
-func BTCPriceFeedConnect() (*PriceKeeper, error) {
-	keeper := &PriceKeeper{}
+func VaultConnect() (*PositionKeeper, error) {
+	keeper := &PositionKeeper{}
 
 	// 连接以太坊客户端
 	client, err := ethclient.Dial(config.GetString("NodeAddress"))
@@ -72,16 +72,16 @@ func BTCPriceFeedConnect() (*PriceKeeper, error) {
 	keeper.auth = auth
 
 	// 初始化合约
-	btcPriceFeddAddress := common.HexToAddress(config.GetString("BTCPriceFeed"))
-	btcPriceFed, err := btcpricefeed.NewBTCPriceFeed(btcPriceFeddAddress, client)
+	vaultAddress := common.HexToAddress(config.GetString("Vault"))
+	vault_, err := vault.NewVault(vaultAddress, client)
 	if err != nil {
 		return nil, err
 	}
-	keeper.btcPriceFed = btcPriceFed
+	keeper.vault = vault_
 
 	// 设置session
-	keeper.btcPriceSession = &btcpricefeed.BTCPriceFeedSession{
-		Contract:     btcPriceFed,
+	keeper.vaultSession = &vault.VaultSession{
+		Contract:     vault_,
 		CallOpts:     bind.CallOpts{},
 		TransactOpts: *auth,
 	}
@@ -90,7 +90,7 @@ func BTCPriceFeedConnect() (*PriceKeeper, error) {
 }
 
 // UpdatePrice 更新价格
-func (keeper *PriceKeeper) UpdateBTCPrice(BTCPrice *big.Int) error {
-	_, err := keeper.btcPriceSession.SetLatestAnswer(BTCPrice)
+func (keeper *PositionKeeper) LiquidatePosition(_account, _collateralToken, _indexToken common.Address, _isLone bool, _feeReceiver common.Address) error {
+	_, err := keeper.vaultSession.LiquidatePosition(_account, _collateralToken, _indexToken, _isLone, _feeReceiver)
 	return err
 }
