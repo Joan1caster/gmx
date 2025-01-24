@@ -8,9 +8,9 @@ import (
 	"gmxBackend/contracts/core/orderbook"
 	rabbitmq "gmxBackend/middleware/mq"
 	"gmxBackend/repository"
-	"gmxBackend/utils"
 	"log"
 	"math/big"
+	"strconv"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -27,13 +27,17 @@ func NewOrderService(orderrepo *repository.OrderRepository, positionrepo *reposi
 
 // 处理价格更新
 func (o *OrderSrvice) HandlerPriceInfo() error {
-	Price_Order := rabbitmq.Consumers["PriceUpdater"]
+	Price_Order := rabbitmq.Consumers["OrderUpdater"]
 
 	// 设置消费者处理函数
 	err := Price_Order.Consume(func(msg []byte) error {
 
-		price := utils.StringToUint256(string(msg), 18)
-		orders, err := o.orderRepo.GetLessOrderByPrice(price)
+		price := string(msg)
+		s, err := strconv.ParseFloat(price, 32)
+		if err != nil {
+			log.Fatal(err)
+		}
+		orders, err := o.orderRepo.GetLessOrderByPrice(s)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -47,7 +51,7 @@ func (o *OrderSrvice) HandlerPriceInfo() error {
 			}
 		}
 
-		orders, err = o.orderRepo.GetLessOrderByPrice(price)
+		orders, err = o.orderRepo.GetLessOrderByPrice(s)
 		if err != nil {
 			log.Fatal(err)
 		}
