@@ -41,7 +41,7 @@ func (o *OrderSrvice) HandlerPriceInfo() error {
 		for _, order := range orders {
 			orderIndex := new(big.Int)
 			orderIndex.SetString(order.OrderIndex, 10)
-			_, err := blockChain.ExecuteOrder(common.HexToAddress(order.Account), orderIndex)
+			_, err := blockChain.ExecuteIncreaseOrder(common.HexToAddress(order.Account), orderIndex)
 			if err != nil {
 				return err
 			}
@@ -55,7 +55,7 @@ func (o *OrderSrvice) HandlerPriceInfo() error {
 		for _, order := range orders {
 			orderIndex := new(big.Int)
 			orderIndex.SetString(order.OrderIndex, 10)
-			blockChain.ExecuteOrder(common.HexToAddress(order.Account), orderIndex)
+			blockChain.ExecuteDecreaseOrder(common.HexToAddress(order.Account), orderIndex)
 		}
 		return nil
 	}, "PriceOrder")
