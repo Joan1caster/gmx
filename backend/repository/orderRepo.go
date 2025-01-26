@@ -42,7 +42,7 @@ func (db *OrderRepository) CreateIncreaseOrder(order orderbook.OrderBookCreateIn
 	return nil
 }
 
-func (db *OrderRepository) GetLessOrderByPrice(price *big.Int) ([]models.Order, error) {
+func (db *OrderRepository) GetLessOrderByPrice(price float64) ([]models.Order, error) {
 	var orders []models.Order
 	result := db.db.Where("trigger_price < ? and trigger_above_threshold = ?", price, 1).Find(&orders)
 
@@ -53,7 +53,7 @@ func (db *OrderRepository) GetLessOrderByPrice(price *big.Int) ([]models.Order, 
 	return orders, nil
 }
 
-func (db *OrderRepository) GetGreateOrderByPrice(price int64) ([]models.Order, error) {
+func (db *OrderRepository) GetGreateOrderByPrice(price float64) ([]models.Order, error) {
 	var orders []models.Order
 	result := db.db.Where("trigger_price > ? and trigger_above_threshold = ?", price, 0).Find(&orders)
 

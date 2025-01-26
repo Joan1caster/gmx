@@ -29,7 +29,7 @@ func InitMQ() {
 		log.Fatalf("Failed to create consumer2: %v", err)
 	}
 
-	Price_Platform, err := CreateConsumer("UserAssets")
+	Price_Platform, err := CreateConsumer("PricePlatform")
 	if err != nil {
 		log.Fatalf("Failed to create consumer2: %v", err)
 	}

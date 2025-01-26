@@ -231,7 +231,7 @@ async function main() {
 	await approvePlugin() // gov授权plugin，用户授权plugin
 
 	// 限价单：100 USDT开10倍BTC的多仓,价格从 targetPrice - range_ 到targetPrice + range_ 
-	const targetPrice = 102800
+	const targetPrice = 104696
 	const range_ = 20
 	for (let price=targetPrice-range_; price<targetPrice+range_; price++) {
 		await increasePosition("100",10, price)// user1买入1000U的BTC，开10倍多仓

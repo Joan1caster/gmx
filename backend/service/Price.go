@@ -60,23 +60,3 @@ func GetPrice(Tokens string) {
 		}
 	}
 }
-
-// func UpdatePriceToChain(priceChain chan string, mq *rabbitmq.RabbitMQ) {
-// 	BTCPriceConn, err := pricekeeper.BTCPriceFeedConnect()
-// 	priceConsumer := mq.GetConsumer("")
-// 	if err != nil {
-// 		fmt.Println("connect rpc error:", err)
-// 	}
-// 	for {
-// 		select {
-// 		case price, ok := <-priceChain:
-// 			if !ok {
-// 				fmt.Println("channel closed")
-// 			}
-// 			priceUint256 := utils.StringToUint256(price, 18)
-// 			BTCPriceConn.UpdateBTCPrice(priceUint256)
-// 			fmt.Println("BTC price for now:", price)
-
-// 		}
-// 	}
-// }

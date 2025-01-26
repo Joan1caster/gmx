@@ -7,10 +7,11 @@ import (
 	"gmxBackend/config"
 	"gmxBackend/contracts/core/orderbook"
 	rabbitmq "gmxBackend/middleware/mq"
+	"gmxBackend/models"
 	"gmxBackend/repository"
-	"gmxBackend/utils"
 	"log"
 	"math/big"
+	"strconv"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -27,27 +28,40 @@ func NewOrderService(orderrepo *repository.OrderRepository, positionrepo *reposi
 
 // 处理价格更新
 func (o *OrderSrvice) HandlerPriceInfo() error {
-	Price_Order := rabbitmq.Consumers["PriceUpdater"]
+	Price_Order := rabbitmq.Consumers["OrderUpdater"]
 
 	// 设置消费者处理函数
 	err := Price_Order.Consume(func(msg []byte) error {
 
-		price := utils.StringToUint256(string(msg), 18)
-		orders, err := o.orderRepo.GetLessOrderByPrice(price)
+		price := string(msg)
+		s, err := strconv.ParseFloat(price, 32)
 		if err != nil {
 			log.Fatal(err)
 		}
 
+		orders1, err := o.orderRepo.GetLessOrderByPrice(s)
+		if err != nil {
+			log.Fatal(err)
+		}
+		orders2, err := o.orderRepo.GetGreateOrderByPrice(s)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		orders := make([]models.Order, len(orders1)+len(orders2))
+		copy(orders, orders1)
+		copy(orders[len(orders1):], orders2)
+
 		for _, order := range orders {
 			orderIndex := new(big.Int)
 			orderIndex.SetString(order.OrderIndex, 10)
-			_, err := blockChain.ExecuteOrder(common.HexToAddress(order.Account), orderIndex)
+			_, err := blockChain.ExecuteIncreaseOrder(common.HexToAddress(order.Account), orderIndex)
 			if err != nil {
 				return err
 			}
 		}
 
-		orders, err = o.orderRepo.GetLessOrderByPrice(price)
+		orders, err = o.orderRepo.GetLessOrderByPrice(s)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -55,7 +69,7 @@ func (o *OrderSrvice) HandlerPriceInfo() error {
 		for _, order := range orders {
 			orderIndex := new(big.Int)
 			orderIndex.SetString(order.OrderIndex, 10)
-			blockChain.ExecuteOrder(common.HexToAddress(order.Account), orderIndex)
+			blockChain.ExecuteDecreaseOrder(common.HexToAddress(order.Account), orderIndex)
 		}
 		return nil
 	}, "PriceOrder")

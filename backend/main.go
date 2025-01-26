@@ -32,12 +32,10 @@ func main() {
 	positionService := service.NewPositionService(OrderRepo, PositionRepo)
 
 	go service.GetPrice("btcusdt")           // 订阅币安的BTC/USDT价格
-	go orderService.HandlerOrderInfo()       // 订阅订单信息
-	go positionService.HandlerPositionInfo() // 处理资产信息
-	go orderService.HandlerPriceInfo()
+	go orderService.HandlerOrderInfo()       // 订阅挂单请求、删除已执行的订单
+	go positionService.HandlerPositionInfo() // 订阅头寸创建，检查平仓条件
+	go orderService.HandlerPriceInfo()       // 检查挂单执行条件
 
-	// 书籍：
-	// go service.UpdatePriceToChain(priceChain) // 将价格更新到链上
 	defer rabbitmq.Shutdown()
 	select {}
 }
